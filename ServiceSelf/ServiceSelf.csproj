@@ -1,9 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net6.0</TargetFramework>
+		<Version>1.0.0-beta1</Version>
+		<Copyright>Copyright © laojiu 2023-2023</Copyright>
+
 		<Nullable>enable</Nullable>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<TargetFramework>net6.0</TargetFramework>
+		<Description>让.net6.0+的应用程序自安装为服务进程</Description>
+		<Authors>laojiu</Authors>
+		<Company>laojiu</Company>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageProjectUrl>https://github.com/xljiulang/ServiceSelf</PackageProjectUrl>
+		<DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
 	</PropertyGroup>
 
 	<ItemGroup>

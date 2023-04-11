@@ -9,9 +9,10 @@
         /// 为主机使用WindowsService和Systemd的生命周期
         /// </summary>
         /// <param name="hostBuilder"></param>
-        public static void UseServiceSelf(this IHostBuilder hostBuilder)
+        /// <returns></returns>
+        public static IHostBuilder UseServiceSelf(this IHostBuilder hostBuilder)
         {
-            hostBuilder.UseWindowsService().UseSystemd();
+            return hostBuilder.UseWindowsService().UseSystemd();
         }
     }
 }

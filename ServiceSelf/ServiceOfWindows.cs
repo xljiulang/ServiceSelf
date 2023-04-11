@@ -7,6 +7,8 @@ namespace ServiceSelf
     [SupportedOSPlatform("windows")]
     sealed class ServiceOfWindows : Service
     {
+        public const string WorkingDirectoryArgName = "WD=";
+
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         public struct SERVICE_DESCRIPTION
         {
@@ -40,7 +42,7 @@ namespace ServiceSelf
                     AdvApi32.ServiceType.SERVICE_WIN32_OWN_PROCESS,
                     AdvApi32.ServiceStartType.SERVICE_AUTO_START,
                     AdvApi32.ServiceErrorControl.SERVICE_ERROR_NORMAL,
-                    $@"""{this.FilePath}"" ""WD={this.WorkingDirectory}""",
+                    $@"""{this.FilePath}"" ""{WorkingDirectoryArgName}{this.WorkingDirectory}""",
                     lpLoadOrderGroup: null,
                     lpdwTagId: 0,
                     lpDependencies: null,

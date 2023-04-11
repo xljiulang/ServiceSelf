@@ -1,6 +1,8 @@
 # ServiceSelf
 让.net6.0+的应用程序自安装为服务进程，支持windows和linux
 
+### nuget
+https://www.nuget.org/packages/ServiceSelf/
 
 ### 如何使用
 ```csharp

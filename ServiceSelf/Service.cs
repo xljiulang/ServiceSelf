@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 
@@ -10,32 +11,32 @@ namespace ServiceSelf
     public abstract class Service
     {
         /// <summary>
-        /// 服务名
+        /// 获取服务名
         /// </summary>
         public string Name { get; }
 
         /// <summary>
-        /// 文件完整路径
+        /// 获取文件完整路径
         /// </summary>
         public string FilePath { get; }
 
         /// <summary>
-        /// 工作目录
+        /// 获取工作目录
         /// </summary>
         public string? WorkingDirectory { get; }
 
         /// <summary>
-        /// 描述
+        /// 获取服务描述
         /// </summary>
         public string? Description { get; }
 
         /// <summary>
         /// 服务
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="filePath"></param>
-        /// <param name="workingDirectory"></param>
-        /// <param name="description"></param>
+        /// <param name="name">服务名</param>
+        /// <param name="filePath">文件完整路径</param>
+        /// <param name="workingDirectory">工作目录</param>
+        /// <param name="description">服务描述</param>
         public Service(string name, string filePath, string? workingDirectory, string? description)
         {
             this.Name = name;
@@ -58,6 +59,7 @@ namespace ServiceSelf
         /// </summary>
         public abstract void StopDelete();
 
+
         /// <summary>
         /// 为程序应用ServiceSelf
         /// 返回true表示可以正常进入程序逻辑
@@ -65,6 +67,8 @@ namespace ServiceSelf
         /// <param name="args">启动参数</param>
         /// <param name="serviceName">服务名，null则为文件名</param>
         /// <returns></returns>
+        /// <exception cref="Win32Exception"></exception>
+        /// <exception cref="PlatformNotSupportedException"></exception>
         public static bool UseServiceSelf(string[] args, string? serviceName = null)
         {
             if (UseCommand(args, serviceName))
@@ -74,14 +78,11 @@ namespace ServiceSelf
 
             if (OperatingSystem.IsWindows())
             {
-                var workingDirArg = args.FirstOrDefault(item => item.StartsWith("WD="));
+                var argName = ServiceOfWindows.WorkingDirectoryArgName;
+                var workingDirArg = args.FirstOrDefault(item => item.StartsWith(argName));
                 if (string.IsNullOrEmpty(workingDirArg) == false)
                 {
-                    var workingDir = workingDirArg[3..];
-                    if (Directory.Exists(workingDir))
-                    {
-                        Environment.CurrentDirectory = workingDir;
-                    }
+                    Environment.CurrentDirectory = workingDirArg[argName.Length..];
                 }
             }
 
@@ -94,6 +95,7 @@ namespace ServiceSelf
         /// <param name="args"></param>
         /// <param name="serviceName"></param>
         /// <returns></returns>
+        /// <exception cref="PlatformNotSupportedException"></exception>
         private static bool UseCommand(string[] args, string? serviceName)
         {
             if (Enum.TryParse<Command>(args.FirstOrDefault(), true, out var cmd) == false)
