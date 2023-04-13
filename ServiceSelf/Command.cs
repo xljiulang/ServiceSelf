@@ -8,11 +8,11 @@
         /// <summary>
         /// 安装并启动
         /// </summary>
-        Start,
+        Start = 1,
 
         /// <summary>
         /// 停止并删除
         /// </summary>
-        Stop,
+        Stop = 0,
     }
 }
