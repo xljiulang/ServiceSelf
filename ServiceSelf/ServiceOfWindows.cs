@@ -70,27 +70,36 @@ namespace ServiceSelf
                     lpDependencies: null,
                     lpServiceStartName: null,
                     lpPassword: null);
-            }
 
-            if (hService.IsInvalid == true)
-            {
-                throw new Win32Exception();
-            }
+                if (hService.IsInvalid == true)
+                {
+                    throw new Win32Exception();
+                }
 
-            if (string.IsNullOrEmpty(description) == false)
-            {
-                var desc = new SERVICE_DESCRIPTION { lpDescription = description };
-                var pDesc = Marshal.AllocHGlobal(Marshal.SizeOf(desc));
-                Marshal.StructureToPtr(desc, pDesc, false);
-                AdvApi32.ChangeServiceConfig2(hService, AdvApi32.ServiceInfoLevel.SERVICE_CONFIG_DESCRIPTION, pDesc);
-                Marshal.FreeHGlobal(pDesc);
+                if (string.IsNullOrEmpty(description) == false)
+                {
+                    var desc = new SERVICE_DESCRIPTION { lpDescription = description };
+                    var pDesc = Marshal.AllocHGlobal(Marshal.SizeOf(desc));
+                    Marshal.StructureToPtr(desc, pDesc, false);
+                    AdvApi32.ChangeServiceConfig2(hService, AdvApi32.ServiceInfoLevel.SERVICE_CONFIG_DESCRIPTION, pDesc);
+                    Marshal.FreeHGlobal(pDesc);
+                }
             }
 
             using (hService)
             {
-                if (AdvApi32.StartService(hService, 0, null) == false)
+                var status = new AdvApi32.SERVICE_STATUS();
+                if (AdvApi32.QueryServiceStatus(hService, ref status) == false)
                 {
                     throw new Win32Exception();
+                }
+
+                if (status.dwCurrentState != AdvApi32.ServiceState.SERVICE_RUNNING)
+                {
+                    if (AdvApi32.StartService(hService, 0, null) == false)
+                    {
+                        throw new Win32Exception();
+                    }
                 }
             }
         }
