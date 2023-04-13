@@ -1,4 +1,8 @@
 ﻿using PInvoke;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
@@ -7,23 +11,35 @@ namespace ServiceSelf
     [SupportedOSPlatform("windows")]
     sealed class ServiceOfWindows : Service
     {
-        public const string WorkingDirectoryArgName = "WD=";
+        private const string workingDirArgName = "WD";
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        public struct SERVICE_DESCRIPTION
+        private struct SERVICE_DESCRIPTION
         {
             public string lpDescription;
         }
 
-        public ServiceOfWindows(string name, string filePath, string? workingDirectory, string? description)
-           : base(name, filePath, workingDirectory, description)
+        public ServiceOfWindows(string name)
+           : base(name)
         {
         }
 
         /// <summary>
-        /// 安装并启动服务
-        /// </summary> 
-        public override void InstallStart()
+        /// 应用工作目录
+        /// </summary>
+        /// <param name="args">启动参数</param>
+        public static void UseWorkingDirectory(string[] args)
+        {
+            var prefix = $"{workingDirArgName}=";
+            var workingDirArgument = args.FirstOrDefault(item => item.StartsWith(prefix));
+            if (string.IsNullOrEmpty(workingDirArgument) == false)
+            {
+                Environment.CurrentDirectory = workingDirArgument[prefix.Length..];
+            }
+        }
+
+
+        public override void CreateStart(string filePath, IEnumerable<Argument>? arguments, string? workingDirectory, string? description)
         {
             using var hSCManager = AdvApi32.OpenSCManager(null, null, AdvApi32.ServiceManagerAccess.SC_MANAGER_ALL_ACCESS);
             if (hSCManager.IsInvalid == true)
@@ -34,6 +50,12 @@ namespace ServiceSelf
             var hService = AdvApi32.OpenService(hSCManager, this.Name, AdvApi32.ServiceAccess.SERVICE_ALL_ACCESS);
             if (hService.IsInvalid == true)
             {
+                filePath = Path.GetFullPath(filePath);
+                arguments ??= Enumerable.Empty<Argument>();
+                arguments = string.IsNullOrEmpty(workingDirectory)
+                    ? arguments.Append(new Argument(workingDirArgName, Path.GetDirectoryName(filePath)))
+                    : arguments.Append(new Argument(workingDirArgName, Path.GetFullPath(workingDirectory)));
+
                 hService = AdvApi32.CreateService(
                     hSCManager,
                     this.Name,
@@ -42,7 +64,7 @@ namespace ServiceSelf
                     AdvApi32.ServiceType.SERVICE_WIN32_OWN_PROCESS,
                     AdvApi32.ServiceStartType.SERVICE_AUTO_START,
                     AdvApi32.ServiceErrorControl.SERVICE_ERROR_NORMAL,
-                    $@"""{this.FilePath}"" ""{WorkingDirectoryArgName}{this.WorkingDirectory}""",
+                    $@"""{filePath}"" {string.Join(' ', arguments)}",
                     lpLoadOrderGroup: null,
                     lpdwTagId: 0,
                     lpDependencies: null,
@@ -55,9 +77,9 @@ namespace ServiceSelf
                 throw new Win32Exception();
             }
 
-            if (string.IsNullOrEmpty(this.Description) == false)
+            if (string.IsNullOrEmpty(description) == false)
             {
-                var desc = new SERVICE_DESCRIPTION { lpDescription = this.Description };
+                var desc = new SERVICE_DESCRIPTION { lpDescription = description };
                 var pDesc = Marshal.AllocHGlobal(Marshal.SizeOf(desc));
                 Marshal.StructureToPtr(desc, pDesc, false);
                 AdvApi32.ChangeServiceConfig2(hService, AdvApi32.ServiceInfoLevel.SERVICE_CONFIG_DESCRIPTION, pDesc);

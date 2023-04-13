@@ -1,5 +1,5 @@
 ﻿using System;
-using System.ComponentModel;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -16,74 +16,49 @@ namespace ServiceSelf
         public string Name { get; }
 
         /// <summary>
-        /// 获取文件完整路径
-        /// </summary>
-        public string FilePath { get; }
-
-        /// <summary>
-        /// 获取工作目录
-        /// </summary>
-        public string? WorkingDirectory { get; }
-
-        /// <summary>
-        /// 获取服务描述
-        /// </summary>
-        public string? Description { get; }
-
-        /// <summary>
         /// 服务
         /// </summary>
-        /// <param name="name">服务名</param>
-        /// <param name="filePath">文件完整路径</param>
-        /// <param name="workingDirectory">工作目录</param>
-        /// <param name="description">服务描述</param>
-        public Service(string name, string filePath, string? workingDirectory, string? description)
+        /// <param name="name">服务名</param> 
+        public Service(string name)
         {
             this.Name = name;
-            this.FilePath = Path.GetFullPath(filePath);
-
-            this.WorkingDirectory = string.IsNullOrEmpty(workingDirectory)
-                ? Path.GetDirectoryName(this.FilePath)
-                : Path.GetFullPath(workingDirectory);
-
-            this.Description = description;
         }
 
         /// <summary>
-        /// 安装并启动服务
+        /// 创建并启动服务
         /// </summary>
-        public abstract void InstallStart();
+        /// <param name="filePath">文件完整路径</param>
+        /// <param name="arguments">服务启动参数</param>
+        /// <param name="workingDirectory">服务工作目录</param>
+        /// <param name="description">服务描述</param>
+        public abstract void CreateStart(string filePath, IEnumerable<Argument>? arguments = null, string? workingDirectory = null, string? description = null);
 
         /// <summary>
         /// 停止并删除服务
         /// </summary>
         public abstract void StopDelete();
 
-
         /// <summary>
         /// 为程序应用ServiceSelf
         /// 返回true表示可以正常进入程序逻辑
         /// </summary> 
         /// <param name="args">启动参数</param>
-        /// <param name="serviceName">服务名，null则为文件名</param>
+        /// <param name="serviceName">服务名</param>
+        /// <param name="serviceArguments">服务启动参数</param>
         /// <returns></returns>
-        /// <exception cref="Win32Exception"></exception>
+        /// <exception cref="FileNotFoundException"></exception>
         /// <exception cref="PlatformNotSupportedException"></exception>
-        public static bool UseServiceSelf(string[] args, string? serviceName = null)
+        public static bool UseServiceSelf(string[] args, string? serviceName = null, IEnumerable<Argument>? serviceArguments = null)
         {
-            if (UseCommand(args, serviceName))
+            if (Enum.TryParse<Command>(args.FirstOrDefault(), true, out var command))
             {
+                UseCommand(command, serviceName, serviceArguments);
                 return false;
             }
 
             if (OperatingSystem.IsWindows())
             {
-                var argName = ServiceOfWindows.WorkingDirectoryArgName;
-                var workingDirArg = args.FirstOrDefault(item => item.StartsWith(argName));
-                if (string.IsNullOrEmpty(workingDirArg) == false)
-                {
-                    Environment.CurrentDirectory = workingDirArg[argName.Length..];
-                }
+                ServiceOfWindows.UseWorkingDirectory(args);
             }
 
             return true;
@@ -92,37 +67,34 @@ namespace ServiceSelf
         /// <summary>
         /// 应用服务命令
         /// </summary>
-        /// <param name="args"></param>
-        /// <param name="serviceName"></param>
+        /// <param name="command"></param> 
+        /// <param name="name">服务名</param>
+        /// <param name="arguments">服务启动参数</param>
         /// <returns></returns>
+        /// <exception cref="FileNotFoundException"></exception>
         /// <exception cref="PlatformNotSupportedException"></exception>
-        private static bool UseCommand(string[] args, string? serviceName)
+        private static void UseCommand(Command command, string? name, IEnumerable<Argument>? arguments)
         {
-            if (Enum.TryParse<Command>(args.FirstOrDefault(), true, out var cmd) == false)
-            {
-                return false;
-            }
-
             var filePath = Environment.ProcessPath;
             if (string.IsNullOrEmpty(filePath))
             {
-                return false;
-            }
-            if (string.IsNullOrEmpty(serviceName))
-            {
-                serviceName = Path.GetFileNameWithoutExtension(filePath);
+                throw new FileNotFoundException("无法获取当前进程的启动文件路径");
             }
 
-            var service = Create(serviceName, filePath);
-            if (cmd == Command.Start)
+            if (string.IsNullOrEmpty(name))
             {
-                service.InstallStart();
+                name = Path.GetFileNameWithoutExtension(filePath);
             }
-            else if (cmd == Command.Stop)
+
+            var service = Create(name);
+            if (command == Command.Start)
+            {
+                service.CreateStart(filePath, arguments);
+            }
+            else if (command == Command.Stop)
             {
                 service.StopDelete();
             }
-            return true;
         }
 
 
@@ -130,21 +102,18 @@ namespace ServiceSelf
         /// 创建服务对象
         /// </summary>
         /// <param name="name">服务名称</param>
-        /// <param name="filePath">进程文件路径</param>
-        /// <param name="workingDirectory">工作目录(win平台需要在服务程序里自行接收和处理WD=参数)</param>
-        /// <param name="description">服务描述</param>
         /// <returns></returns>
         /// <exception cref="PlatformNotSupportedException"></exception>
-        public static Service Create(string name, string filePath, string? workingDirectory = null, string? description = null)
+        public static Service Create(string name)
         {
             if (OperatingSystem.IsWindows())
             {
-                return new ServiceOfWindows(name, filePath, workingDirectory, description);
+                return new ServiceOfWindows(name);
             }
 
             if (OperatingSystem.IsLinux())
             {
-                return new ServiceOfLinux(name, filePath, workingDirectory, description);
+                return new ServiceOfLinux(name);
             }
 
             throw new PlatformNotSupportedException();
