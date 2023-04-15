@@ -8,7 +8,6 @@ using System.Runtime.Versioning;
 
 namespace ServiceSelf
 {
-    [SupportedOSPlatform("windows")]
     sealed class ServiceOfWindows : Service
     {
         private const string workingDirArgName = "WD";
@@ -19,6 +18,7 @@ namespace ServiceSelf
             public string lpDescription;
         }
 
+        [SupportedOSPlatform("windows")]
         public ServiceOfWindows(string name)
            : base(name)
         {
@@ -28,17 +28,20 @@ namespace ServiceSelf
         /// 应用工作目录
         /// </summary>
         /// <param name="args">启动参数</param>
-        public static void UseWorkingDirectory(string[] args)
+        /// <returns></returns>
+        public static bool UseWorkingDirectory(string[] args)
         {
             var prefix = $"{workingDirArgName}=";
             var workingDirArgument = args.FirstOrDefault(item => item.StartsWith(prefix));
             if (string.IsNullOrEmpty(workingDirArgument) == false)
             {
                 Environment.CurrentDirectory = workingDirArgument[prefix.Length..];
+                return true;
             }
+            return false;
         }
 
-
+        [SupportedOSPlatform("windows")]
         public override void CreateStart(string filePath, IEnumerable<Argument>? arguments, string? workingDirectory, string? description)
         {
             using var hSCManager = AdvApi32.OpenSCManager(null, null, AdvApi32.ServiceManagerAccess.SC_MANAGER_ALL_ACCESS);
@@ -107,6 +110,7 @@ namespace ServiceSelf
         /// <summary>
         /// 停止并删除服务
         /// </summary>  
+        [SupportedOSPlatform("windows")]
         public override void StopDelete()
         {
             using var hSCManager = AdvApi32.OpenSCManager(null, null, AdvApi32.ServiceManagerAccess.SC_MANAGER_ALL_ACCESS);

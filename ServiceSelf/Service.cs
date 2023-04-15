@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Microsoft.Extensions.Hosting.Systemd;
+using Microsoft.Extensions.Hosting.WindowsServices;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -51,19 +53,29 @@ namespace ServiceSelf
         /// <exception cref="PlatformNotSupportedException"></exception>
         public static bool UseServiceSelf(string[] args, string? serviceName = null, IEnumerable<Argument>? serviceArguments = null)
         {
+            // windows服务模式时需要将工作目录参数设置到环境变化
+            if (WindowsServiceHelpers.IsWindowsService())
+            {
+                return ServiceOfWindows.UseWorkingDirectory(args);
+            }
+
+            // systemd服务模式时不再检查任何参数
+            if (SystemdHelpers.IsSystemdService())
+            {
+                return true;
+            }
+
+            // 具有可交互的模式时，比如桌面程序、控制台等
             if (Enum.TryParse<Command>(args.FirstOrDefault(), true, out var command))
             {
                 UseCommand(command, serviceName, serviceArguments);
                 return false;
             }
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                ServiceOfWindows.UseWorkingDirectory(args);
-            }
-
+            // 没有command子命令时
             return true;
         }
+
 
         /// <summary>
         /// 应用服务命令

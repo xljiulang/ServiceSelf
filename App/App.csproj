@@ -5,9 +5,12 @@
 		<OutputType>Exe</OutputType>
 		<TargetFramework>net6.0</TargetFramework>
 		<Nullable>enable</Nullable>
-		<ApplicationManifest>app.manifest</ApplicationManifest>
 	</PropertyGroup>
 
+	<PropertyGroup Condition="'$(Configuration)'!='Debug'">
+		<ApplicationManifest>app.manifest</ApplicationManifest>
+	</PropertyGroup>
+	
 	<ItemGroup>
 		<ProjectReference Include="..\ServiceSelf\ServiceSelf.csproj" />
 	</ItemGroup>

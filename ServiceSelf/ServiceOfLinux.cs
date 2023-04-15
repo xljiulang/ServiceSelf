@@ -38,7 +38,6 @@ namespace ServiceSelf
                 .AppendLine()
                 .AppendLine("[Service]")
                 .AppendLine("Type=notify")
-                .AppendLine($"User={Environment.UserName}")
                 .AppendLine($"ExecStart={execStart}")
                 .AppendLine($"WorkingDirectory={workingDirectory}")
                 .AppendLine()
@@ -48,10 +47,10 @@ namespace ServiceSelf
             var serviceFilePath = $"/etc/systemd/system/{this.Name}.service";
             File.WriteAllText(serviceFilePath, serviceBuilder.ToString());
 
-            Process.Start("chcon", $"--type=bin_t {filePath}").WaitForExit(); // SELinux
-            Process.Start("systemctl", "daemon-reload").WaitForExit();
-            Process.Start("systemctl", $"start {this.Name}.service").WaitForExit();
-            Process.Start("systemctl", $"enable {this.Name}.service").WaitForExit();
+            Shell("chcon", $"--type=bin_t {filePath}", false); // SELinux
+            Shell("systemctl", "daemon-reload");
+            Shell("systemctl", $"start {this.Name}.service");
+            Shell("systemctl", $"enable {this.Name}.service", false);
         }
 
         public override void StopDelete()
@@ -59,14 +58,29 @@ namespace ServiceSelf
             CheckRoot();
 
             var serviceFilePath = $"/etc/systemd/system/{this.Name}.service";
-            Process.Start("systemctl", $"stop {this.Name}.service").WaitForExit();
-            Process.Start("systemctl", $"disable {this.Name}.service").WaitForExit();
-
-            if (File.Exists(serviceFilePath))
+            if (File.Exists(serviceFilePath) == false)
             {
-                File.Delete(serviceFilePath);
+                return;
             }
-            Process.Start("systemctl", "daemon-reload").WaitForExit();
+
+            Shell("systemctl", $"stop {this.Name}.service");
+            Shell("systemctl", $"disable {this.Name}.service", false);
+            Shell("systemctl", "daemon-reload");
+
+            File.Delete(serviceFilePath);
+        }
+
+        private static void Shell(string fileName, string arguments, bool showError = true)
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = fileName,
+                Arguments = arguments,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = !showError
+            };
+            Process.Start(startInfo)?.WaitForExit();
         }
 
         private static void CheckRoot()
