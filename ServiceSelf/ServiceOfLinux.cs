@@ -24,6 +24,75 @@ namespace ServiceSelf
             CheckRoot();
 
             filePath = Path.GetFullPath(filePath);
+
+            var unitFilePath = $"/etc/systemd/system/{this.Name}.service";
+            var oldFilePath = QueryServiceFilePath(unitFilePath);
+            if (string.Equals(filePath, oldFilePath, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("系统已存在同名但不同路径的服务");
+            }
+
+            var unitContent = CreateUnitContent(filePath, arguments, workingDirectory, description);
+            File.WriteAllText(unitFilePath, unitContent);
+
+            // SELinux
+            Shell("chcon", $"--type=bin_t {filePath}", false);
+
+            SystemCtl("daemon-reload");
+            SystemCtl($"start {this.Name}.service");
+            SystemCtl($"enable {this.Name}.service", false);
+        }
+
+        private static string? QueryServiceFilePath(string unitFilePath)
+        {
+            if (File.Exists(unitFilePath) == false)
+            {
+                return null;
+            }
+
+            var execStartPrefix = "ExecStart=".AsSpan();
+            var wantedByPrefix = "WantedBy=".AsSpan();
+
+            using var stream = File.OpenRead(unitFilePath);
+            var reader = new StreamReader(stream);
+
+            var filePath = ReadOnlySpan<char>.Empty;
+            var wantedBy = ReadOnlySpan<char>.Empty;
+            while (reader.EndOfStream == false)
+            {
+                var line = reader.ReadLine().AsSpan();
+                if (line.StartsWith(execStartPrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    line = line[execStartPrefix.Length..];
+                    var index = line.IndexOf(' ');
+                    filePath = index < 0 ? line : line[..index];
+                }
+                else if (line.StartsWith(wantedByPrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    wantedBy = line[..wantedByPrefix.Length].Trim();
+                }
+
+                if (filePath.Length > 0 && wantedBy.Length > 0)
+                {
+                    break;
+                }
+            }
+
+            if (filePath.IsEmpty || wantedBy.IsEmpty)
+            {
+                return null;
+            }
+
+            var wants = $"{wantedBy.ToString()}.wants";
+            var unitFileName = Path.GetFileName(unitFilePath);
+            var unitFileDir = Path.GetDirectoryName(unitFilePath);
+            var unitLink = Path.Combine(unitFileDir!, wants, unitFileName);
+            return File.Exists(unitLink) ? filePath.ToString() : null;
+        }
+
+
+        private static string CreateUnitContent(string filePath, IEnumerable<Argument>? arguments, string? workingDirectory, string? description)
+        {
             workingDirectory = string.IsNullOrEmpty(workingDirectory)
                 ? Path.GetDirectoryName(filePath)
                 : Path.GetFullPath(workingDirectory);
@@ -32,7 +101,7 @@ namespace ServiceSelf
                 ? filePath
                 : $"{filePath} {string.Join(' ', arguments)}";
 
-            var serviceBuilder = new StringBuilder()
+            return new StringBuilder()
                 .AppendLine("[Unit]")
                 .AppendLine($"Description={description}")
                 .AppendLine()
@@ -42,16 +111,10 @@ namespace ServiceSelf
                 .AppendLine($"WorkingDirectory={workingDirectory}")
                 .AppendLine()
                 .AppendLine("[Install]")
-                .AppendLine("WantedBy=multi-user.target");
-
-            var serviceFilePath = $"/etc/systemd/system/{this.Name}.service";
-            File.WriteAllText(serviceFilePath, serviceBuilder.ToString());
-
-            Shell("chcon", $"--type=bin_t {filePath}", false); // SELinux
-            SystemCtl("daemon-reload");
-            SystemCtl($"start {this.Name}.service");
-            SystemCtl($"enable {this.Name}.service", false);
+                .AppendLine("WantedBy=multi-user.target")
+                .ToString();
         }
+
 
         public override void StopDelete()
         {
