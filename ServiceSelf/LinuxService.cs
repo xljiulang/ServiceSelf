@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using System.Text;
 
 namespace ServiceSelf
 {
@@ -118,11 +117,7 @@ namespace ServiceSelf
                 options.OSLinux.Install.WantedBy = "multi-user.target";
             }
 
-            return new StringBuilder()
-                .AppendLine(options.OSLinux.Unit.ToString())
-                .AppendLine(options.OSLinux.Service.ToString())
-                .AppendLine(options.OSLinux.Install.ToString())
-                .ToString();
+            return options.OSLinux.ToString();
         }
 
 
