@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace ServiceSelf
 {
@@ -56,7 +57,7 @@ namespace ServiceSelf
                 return false;
             }
 
-            if (OperatingSystem.IsWindows())
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 ServiceOfWindows.UseWorkingDirectory(args);
             }
@@ -75,7 +76,11 @@ namespace ServiceSelf
         /// <exception cref="PlatformNotSupportedException"></exception>
         private static void UseCommand(Command command, string? name, IEnumerable<Argument>? arguments)
         {
+#if NET6_0_OR_GREATER
             var filePath = Environment.ProcessPath;
+#else
+            var filePath = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
+#endif
             if (string.IsNullOrEmpty(filePath))
             {
                 throw new FileNotFoundException("无法获取当前进程的启动文件路径");
@@ -106,12 +111,12 @@ namespace ServiceSelf
         /// <exception cref="PlatformNotSupportedException"></exception>
         public static Service Create(string name)
         {
-            if (OperatingSystem.IsWindows())
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 return new ServiceOfWindows(name);
             }
 
-            if (OperatingSystem.IsLinux())
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 return new ServiceOfLinux(name);
             }

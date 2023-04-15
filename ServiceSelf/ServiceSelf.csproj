@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<Version>1.0.0-beta2</Version>
+		<Version>1.0.0</Version>
 		<Copyright>Copyright © laojiu 2023-2023</Copyright>
 
 		<Nullable>enable</Nullable>
-		<TargetFramework>net6.0</TargetFramework>
+		<TargetFrameworks>netcoreapp3.1;net6.0</TargetFrameworks>
 		<Description>让.net6.0+的应用程序自安装为服务进程</Description>
 		<Authors>laojiu</Authors>
 		<Company>laojiu</Company>
@@ -18,7 +18,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="PInvoke.AdvApi32" Version="0.7.124" />
-		<PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="6.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="6.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="3.1.0" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="3.1.0" />
 	</ItemGroup>
 </Project>

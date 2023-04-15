@@ -1,5 +1,5 @@
 # ServiceSelf
-让.net6.0+的应用程序自安装为服务进程，支持windows和linux
+为[.NET 泛型主机](https://learn.microsoft.com/zh-cn/dotnet/core/extensions/generic-host)的应用程序提供自安装为服务进程的能力，支持windows和linux平台。
 
 ### 1 nuget
 https://www.nuget.org/packages/ServiceSelf/
