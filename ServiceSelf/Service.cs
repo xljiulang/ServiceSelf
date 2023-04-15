@@ -31,10 +31,8 @@ namespace ServiceSelf
         /// 创建并启动服务
         /// </summary>
         /// <param name="filePath">文件完整路径</param>
-        /// <param name="arguments">服务启动参数</param>
-        /// <param name="workingDirectory">服务工作目录</param>
-        /// <param name="description">服务描述</param>
-        public abstract void CreateStart(string filePath, IEnumerable<Argument>? arguments = null, string? workingDirectory = null, string? description = null);
+        /// <param name="options">服务选项</param> 
+        public abstract void CreateStart(string filePath, ServiceOptions options);
 
         /// <summary>
         /// 停止并删除服务
@@ -53,10 +51,26 @@ namespace ServiceSelf
         /// <exception cref="PlatformNotSupportedException"></exception>
         public static bool UseServiceSelf(string[] args, string? serviceName = null, IEnumerable<Argument>? serviceArguments = null)
         {
+            var serviceOptions = serviceArguments == null ? null : new ServiceOptions { Arguments = serviceArguments };
+            return UseServiceSelf(args, serviceName, serviceOptions);
+        }
+
+        /// <summary>
+        /// 为程序应用ServiceSelf
+        /// 返回true表示可以正常进入程序逻辑
+        /// </summary> 
+        /// <param name="args">启动参数</param>
+        /// <param name="serviceName">服务名</param>
+        /// <param name="serviceOptions">服务选项</param>
+        /// <returns></returns>
+        /// <exception cref="FileNotFoundException"></exception>
+        /// <exception cref="PlatformNotSupportedException"></exception>
+        public static bool UseServiceSelf(string[] args, string? serviceName, ServiceOptions? serviceOptions)
+        {
             // windows服务模式时需要将工作目录参数设置到环境变化
             if (WindowsServiceHelpers.IsWindowsService())
             {
-                return ServiceOfWindows.UseWorkingDirectory(args);
+                return WindowsService.UseWorkingDirectory(args);
             }
 
             // systemd服务模式时不再检查任何参数
@@ -68,7 +82,7 @@ namespace ServiceSelf
             // 具有可交互的模式时，比如桌面程序、控制台等
             if (Enum.TryParse<Command>(args.FirstOrDefault(), true, out var command))
             {
-                UseCommand(command, serviceName, serviceArguments);
+                UseCommand(command, serviceName, serviceOptions);
                 return false;
             }
 
@@ -82,11 +96,11 @@ namespace ServiceSelf
         /// </summary>
         /// <param name="command"></param> 
         /// <param name="name">服务名</param>
-        /// <param name="arguments">服务启动参数</param>
+        /// <param name="options">服务选项</param>
         /// <returns></returns>
         /// <exception cref="FileNotFoundException"></exception>
         /// <exception cref="PlatformNotSupportedException"></exception>
-        private static void UseCommand(Command command, string? name, IEnumerable<Argument>? arguments)
+        private static void UseCommand(Command command, string? name, ServiceOptions? options)
         {
 #if NET6_0_OR_GREATER
             var filePath = Environment.ProcessPath;
@@ -106,7 +120,7 @@ namespace ServiceSelf
             var service = Create(name);
             if (command == Command.Start)
             {
-                service.CreateStart(filePath, arguments);
+                service.CreateStart(filePath, options ?? new ServiceOptions());
             }
             else if (command == Command.Stop)
             {
@@ -125,12 +139,12 @@ namespace ServiceSelf
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                return new ServiceOfWindows(name);
+                return new WindowsService(name);
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                return new ServiceOfLinux(name);
+                return new LinuxService(name);
             }
 
             throw new PlatformNotSupportedException();

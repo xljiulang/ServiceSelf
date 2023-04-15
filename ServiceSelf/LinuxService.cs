@@ -1,7 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
@@ -9,17 +9,17 @@ using System.Text;
 namespace ServiceSelf
 {
     [SupportedOSPlatform("linux")]
-    sealed class ServiceOfLinux : Service
+    sealed class LinuxService : Service
     {
         [DllImport("libc", SetLastError = true)]
         private static extern uint geteuid();
 
-        public ServiceOfLinux(string name)
+        public LinuxService(string name)
             : base(name)
         {
         }
 
-        public override void CreateStart(string filePath, IEnumerable<Argument>? arguments, string? workingDirectory, string? description)
+        public override void CreateStart(string filePath, ServiceOptions options)
         {
             CheckRoot();
 
@@ -34,7 +34,7 @@ namespace ServiceSelf
                 throw new InvalidOperationException("系统已存在同名但不同路径的服务");
             }
 
-            var unitContent = CreateUnitContent(filePath, arguments, workingDirectory, description);
+            var unitContent = CreateUnitContent(filePath, options);
             File.WriteAllText(unitFilePath, unitContent);
 
             // SELinux
@@ -93,19 +93,25 @@ namespace ServiceSelf
         }
 
 
-        private static string CreateUnitContent(string filePath, IEnumerable<Argument>? arguments, string? workingDirectory, string? description)
+        private static string CreateUnitContent(string filePath, ServiceOptions options)
         {
-            workingDirectory = string.IsNullOrEmpty(workingDirectory)
-                ? Path.GetDirectoryName(filePath)
-                : Path.GetFullPath(workingDirectory);
+            var execStart = filePath;
+            if (options.Arguments != null)
+            {
+                var args = options.Arguments.ToArray(); // 防止多次迭代
+                if (args.Length > 0)
+                {
+                    execStart = $"{filePath} {string.Join<Argument>(' ', args)}";
+                }
+            }
 
-            var execStart = arguments == null
-                ? filePath
-                : $"{filePath} {string.Join(' ', arguments)}";
+            var workingDirectory = string.IsNullOrEmpty(options.WorkingDirectory)
+                ? Path.GetDirectoryName(filePath)
+                : Path.GetFullPath(options.WorkingDirectory); 
 
             return new StringBuilder()
                 .AppendLine("[Unit]")
-                .AppendLine($"Description={description}")
+                .AppendLine($"Description={options.Description}")
                 .AppendLine()
                 .AppendLine("[Service]")
                 .AppendLine("Type=notify")
