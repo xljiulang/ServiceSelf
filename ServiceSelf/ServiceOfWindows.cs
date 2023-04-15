@@ -72,38 +72,27 @@ namespace ServiceSelf
                 throw new Win32Exception();
             }
 
-            using var oldServiceHandle = AdvApi32.OpenService(managerHandle, this.Name, AdvApi32.ServiceAccess.SERVICE_ALL_ACCESS);
-            using var serviceHandle = this.Create(managerHandle, oldServiceHandle, filePath, arguments, workingDirectory, description);
-
-            var status = new AdvApi32.SERVICE_STATUS();
-            if (AdvApi32.QueryServiceStatus(serviceHandle, ref status) == false)
-            {
-                throw new Win32Exception();
-            }
-
-            if (status.dwCurrentState != AdvApi32.ServiceState.SERVICE_RUNNING)
-            {
-                if (AdvApi32.StartService(serviceHandle, 0, null) == false)
-                {
-                    throw new Win32Exception();
-                }
-            }
-        }
-
-
-        private AdvApi32.SafeServiceHandle Create(AdvApi32.SafeServiceHandle managerHandle, AdvApi32.SafeServiceHandle oldServiceHandle, string filePath, IEnumerable<Argument>? arguments, string? workingDirectory, string? description)
-        {
             filePath = Path.GetFullPath(filePath);
-            if (oldServiceHandle.IsInvalid == false)
+            using var oldServiceHandle = AdvApi32.OpenService(managerHandle, this.Name, AdvApi32.ServiceAccess.SERVICE_ALL_ACCESS);
+
+            if (oldServiceHandle.IsInvalid)
+            {
+                using var newServiceHandle = this.CreateService(managerHandle, filePath, arguments, workingDirectory, description);
+                StartService(newServiceHandle);
+            }
+            else
             {
                 var oldFilePath = QueryServiceFilePath(oldServiceHandle);
                 if (string.Equals(filePath, oldFilePath, StringComparison.OrdinalIgnoreCase) == false)
                 {
                     throw new InvalidOperationException("系统已存在同名但不同路径的服务");
                 }
-                return oldServiceHandle;
+                StartService(oldServiceHandle);
             }
+        }
 
+        private AdvApi32.SafeServiceHandle CreateService(AdvApi32.SafeServiceHandle managerHandle, string filePath, IEnumerable<Argument>? arguments, string? workingDirectory, string? description)
+        {
             arguments ??= Enumerable.Empty<Argument>();
             arguments = string.IsNullOrEmpty(workingDirectory)
                 ? arguments.Append(new Argument(workingDirArgName, Path.GetDirectoryName(filePath)))
@@ -182,6 +171,23 @@ namespace ServiceSelf
             finally
             {
                 Marshal.FreeHGlobal(buffer);
+            }
+        }
+
+        private static void StartService(AdvApi32.SafeServiceHandle serviceHandle)
+        {
+            var status = new AdvApi32.SERVICE_STATUS();
+            if (AdvApi32.QueryServiceStatus(serviceHandle, ref status) == false)
+            {
+                throw new Win32Exception();
+            }
+
+            if (status.dwCurrentState != AdvApi32.ServiceState.SERVICE_RUNNING)
+            {
+                if (AdvApi32.StartService(serviceHandle, 0, null) == false)
+                {
+                    throw new Win32Exception();
+                }
             }
         }
 
