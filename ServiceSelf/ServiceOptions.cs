@@ -18,18 +18,18 @@ namespace ServiceSelf
         public string? WorkingDirectory { get; set; }
 
         /// <summary>
-        /// 描述服务
+        /// 服务描述
         /// </summary>
         public string? Description { get; set; }
 
         /// <summary>
-        /// 获取linux选项
+        /// 获取仅适用于linux的选项
         /// </summary>
-        public LinuxServiceOptions Linux { get;  } = new LinuxServiceOptions();
+        public LinuxServiceOptions OSLinux { get; } = new LinuxServiceOptions();
 
         /// <summary>
-        /// 获取windows选项
+        /// 获取仅适用于windows的选项
         /// </summary>
-        public WindowsServiceOptions Windows { get;  } = new WindowsServiceOptions();
+        public WindowsServiceOptions OSWindows { get; } = new WindowsServiceOptions();
     }
 }

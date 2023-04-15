@@ -109,19 +109,19 @@ namespace ServiceSelf
                 ? Path.GetDirectoryName(filePath)
                 : Path.GetFullPath(options.WorkingDirectory);
 
-            options.Linux.Unit["Description"] = options.Description;
-            options.Linux.Service["ExecStart"] = execStart;
-            options.Linux.Service["WorkingDirectory"] = workingDirectory;
+            options.OSLinux.Unit["Description"] = options.Description;
+            options.OSLinux.Service["ExecStart"] = execStart;
+            options.OSLinux.Service["WorkingDirectory"] = workingDirectory;
 
-            if (string.IsNullOrEmpty(options.Linux.Install.WantedBy))
+            if (string.IsNullOrEmpty(options.OSLinux.Install.WantedBy))
             {
-                options.Linux.Install.WantedBy = "multi-user.target";
+                options.OSLinux.Install.WantedBy = "multi-user.target";
             }
 
             return new StringBuilder()
-                .AppendLine(options.Linux.Unit.ToString())
-                .AppendLine(options.Linux.Service.ToString())
-                .AppendLine(options.Linux.Install.ToString())
+                .AppendLine(options.OSLinux.Unit.ToString())
+                .AppendLine(options.OSLinux.Service.ToString())
+                .AppendLine(options.OSLinux.Install.ToString())
                 .ToString();
         }
 

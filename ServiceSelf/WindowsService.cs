@@ -100,7 +100,7 @@ namespace ServiceSelf
             var serviceHandle = AdvApi32.CreateService(
                 managerHandle,
                 this.Name,
-                this.Name,
+                options.OSWindows.DisplayName,
                 AdvApi32.ServiceAccess.SERVICE_ALL_ACCESS,
                 AdvApi32.ServiceType.SERVICE_WIN32_OWN_PROCESS,
                 AdvApi32.ServiceStartType.SERVICE_AUTO_START,
@@ -108,9 +108,9 @@ namespace ServiceSelf
                 $@"""{filePath}"" {string.Join(' ', arguments)}",
                 lpLoadOrderGroup: null,
                 lpdwTagId: 0,
-                lpDependencies: null,
-                lpServiceStartName: null,
-                lpPassword: null);
+                lpDependencies: options.OSWindows.Dependencies,
+                lpServiceStartName: options.OSWindows.ServiceStartName,
+                lpPassword: options.OSWindows.Password);
 
             if (serviceHandle.IsInvalid == true)
             {
