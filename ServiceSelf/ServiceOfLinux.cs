@@ -122,8 +122,8 @@ namespace ServiceSelf
         {
             CheckRoot();
 
-            var serviceFilePath = $"/etc/systemd/system/{this.Name}.service";
-            if (File.Exists(serviceFilePath) == false)
+            var unitFilePath = $"/etc/systemd/system/{this.Name}.service";
+            if (File.Exists(unitFilePath) == false)
             {
                 return;
             }
@@ -132,7 +132,7 @@ namespace ServiceSelf
             SystemCtl($"disable {this.Name}.service", false);
             SystemCtl("daemon-reload");
 
-            File.Delete(serviceFilePath);
+            File.Delete(unitFilePath);
         }
 
         private static void SystemCtl(string arguments, bool showError = true)
