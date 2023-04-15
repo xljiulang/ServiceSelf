@@ -107,19 +107,21 @@ namespace ServiceSelf
 
             var workingDirectory = string.IsNullOrEmpty(options.WorkingDirectory)
                 ? Path.GetDirectoryName(filePath)
-                : Path.GetFullPath(options.WorkingDirectory); 
+                : Path.GetFullPath(options.WorkingDirectory);
+
+            options.Linux.Unit["Description"] = options.Description;
+            options.Linux.Service["ExecStart"] = execStart;
+            options.Linux.Service["WorkingDirectory"] = workingDirectory;
+
+            if (string.IsNullOrEmpty(options.Linux.Install.WantedBy))
+            {
+                options.Linux.Install.WantedBy = "multi-user.target";
+            }
 
             return new StringBuilder()
-                .AppendLine("[Unit]")
-                .AppendLine($"Description={options.Description}")
-                .AppendLine()
-                .AppendLine("[Service]")
-                .AppendLine("Type=notify")
-                .AppendLine($"ExecStart={execStart}")
-                .AppendLine($"WorkingDirectory={workingDirectory}")
-                .AppendLine()
-                .AppendLine("[Install]")
-                .AppendLine("WantedBy=multi-user.target")
+                .AppendLine(options.Linux.Unit.ToString())
+                .AppendLine(options.Linux.Service.ToString())
+                .AppendLine(options.Linux.Install.ToString())
                 .ToString();
         }
 

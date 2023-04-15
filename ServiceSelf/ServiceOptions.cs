@@ -23,13 +23,13 @@ namespace ServiceSelf
         public string? Description { get; set; }
 
         /// <summary>
-        /// linux选项
+        /// 获取linux选项
         /// </summary>
-        public LinuxServiceOptions Linux { get; } = new LinuxServiceOptions();
+        public LinuxServiceOptions Linux { get;  } = new LinuxServiceOptions();
 
         /// <summary>
-        /// windows选项
+        /// 获取windows选项
         /// </summary>
-        public WindowsServiceOptions Windows { get; } = new WindowsServiceOptions();
+        public WindowsServiceOptions Windows { get;  } = new WindowsServiceOptions();
     }
 }
