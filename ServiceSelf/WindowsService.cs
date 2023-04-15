@@ -1,6 +1,5 @@
 ﻿using PInvoke;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -8,7 +7,7 @@ using System.Runtime.Versioning;
 
 namespace ServiceSelf
 {
-    sealed class ServiceOfWindows : Service
+    sealed class WindowsService : Service
     {
         private const string workingDirArgName = "WD";
 
@@ -41,7 +40,7 @@ namespace ServiceSelf
 
 
         [SupportedOSPlatform("windows")]
-        public ServiceOfWindows(string name)
+        public WindowsService(string name)
            : base(name)
         {
         }
@@ -64,7 +63,7 @@ namespace ServiceSelf
         }
 
         [SupportedOSPlatform("windows")]
-        public override void CreateStart(string filePath, IEnumerable<Argument>? arguments, string? workingDirectory, string? description)
+        public override void CreateStart(string filePath, ServiceOptions options)
         {
             using var managerHandle = AdvApi32.OpenSCManager(null, null, AdvApi32.ServiceManagerAccess.SC_MANAGER_ALL_ACCESS);
             if (managerHandle.IsInvalid == true)
@@ -77,7 +76,7 @@ namespace ServiceSelf
 
             if (oldServiceHandle.IsInvalid)
             {
-                using var newServiceHandle = this.CreateService(managerHandle, filePath, arguments, workingDirectory, description);
+                using var newServiceHandle = this.CreateService(managerHandle, filePath, options);
                 StartService(newServiceHandle);
             }
             else
@@ -91,17 +90,17 @@ namespace ServiceSelf
             }
         }
 
-        private AdvApi32.SafeServiceHandle CreateService(AdvApi32.SafeServiceHandle managerHandle, string filePath, IEnumerable<Argument>? arguments, string? workingDirectory, string? description)
+        private AdvApi32.SafeServiceHandle CreateService(AdvApi32.SafeServiceHandle managerHandle, string filePath, ServiceOptions options)
         {
-            arguments ??= Enumerable.Empty<Argument>();
-            arguments = string.IsNullOrEmpty(workingDirectory)
+            var arguments = options.Arguments ?? Enumerable.Empty<Argument>();
+            arguments = string.IsNullOrEmpty(options.WorkingDirectory)
                 ? arguments.Append(new Argument(workingDirArgName, Path.GetDirectoryName(filePath)))
-                : arguments.Append(new Argument(workingDirArgName, Path.GetFullPath(workingDirectory)));
+                : arguments.Append(new Argument(workingDirArgName, Path.GetFullPath(options.WorkingDirectory)));
 
             var serviceHandle = AdvApi32.CreateService(
                 managerHandle,
                 this.Name,
-                this.Name,
+                options.OSWindows.DisplayName,
                 AdvApi32.ServiceAccess.SERVICE_ALL_ACCESS,
                 AdvApi32.ServiceType.SERVICE_WIN32_OWN_PROCESS,
                 AdvApi32.ServiceStartType.SERVICE_AUTO_START,
@@ -109,18 +108,18 @@ namespace ServiceSelf
                 $@"""{filePath}"" {string.Join(' ', arguments)}",
                 lpLoadOrderGroup: null,
                 lpdwTagId: 0,
-                lpDependencies: null,
-                lpServiceStartName: null,
-                lpPassword: null);
+                lpDependencies: options.OSWindows.Dependencies,
+                lpServiceStartName: options.OSWindows.ServiceStartName,
+                lpPassword: options.OSWindows.Password);
 
             if (serviceHandle.IsInvalid == true)
             {
                 throw new Win32Exception();
             }
 
-            if (string.IsNullOrEmpty(description) == false)
+            if (string.IsNullOrEmpty(options.Description) == false)
             {
-                var desc = new SERVICE_DESCRIPTION { lpDescription = description };
+                var desc = new SERVICE_DESCRIPTION { lpDescription = options.Description };
                 var pDesc = Marshal.AllocHGlobal(Marshal.SizeOf(desc));
                 Marshal.StructureToPtr(desc, pDesc, false);
                 AdvApi32.ChangeServiceConfig2(serviceHandle, AdvApi32.ServiceInfoLevel.SERVICE_CONFIG_DESCRIPTION, pDesc);
