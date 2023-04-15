@@ -80,7 +80,8 @@ namespace ServiceSelf
             }
 
             // 具有可交互的模式时，比如桌面程序、控制台等
-            if (Enum.TryParse<Command>(args.FirstOrDefault(), true, out var command))
+            if (Enum.TryParse<Command>(args.FirstOrDefault(), true, out var command) &&
+                Enum.IsDefined(typeof(Command), command))
             {
                 UseCommand(command, serviceName, serviceOptions);
                 return false;
