@@ -48,9 +48,9 @@ namespace ServiceSelf
             File.WriteAllText(serviceFilePath, serviceBuilder.ToString());
 
             Shell("chcon", $"--type=bin_t {filePath}", false); // SELinux
-            Shell("systemctl", "daemon-reload");
-            Shell("systemctl", $"start {this.Name}.service");
-            Shell("systemctl", $"enable {this.Name}.service", false);
+            SystemCtl("daemon-reload");
+            SystemCtl($"start {this.Name}.service");
+            SystemCtl($"enable {this.Name}.service", false);
         }
 
         public override void StopDelete()
@@ -63,11 +63,16 @@ namespace ServiceSelf
                 return;
             }
 
-            Shell("systemctl", $"stop {this.Name}.service");
-            Shell("systemctl", $"disable {this.Name}.service", false);
-            Shell("systemctl", "daemon-reload");
+            SystemCtl($"stop {this.Name}.service");
+            SystemCtl($"disable {this.Name}.service", false);
+            SystemCtl("daemon-reload");
 
             File.Delete(serviceFilePath);
+        }
+
+        private static void SystemCtl(string arguments, bool showError = true)
+        {
+            Shell("systemctl", arguments, showError);
         }
 
         private static void Shell(string fileName, string arguments, bool showError = true)
