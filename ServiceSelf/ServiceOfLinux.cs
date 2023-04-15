@@ -27,7 +27,9 @@ namespace ServiceSelf
 
             var unitFilePath = $"/etc/systemd/system/{this.Name}.service";
             var oldFilePath = QueryServiceFilePath(unitFilePath);
-            if (string.Equals(filePath, oldFilePath, StringComparison.OrdinalIgnoreCase))
+
+            if (string.IsNullOrEmpty(oldFilePath) == false &&
+                filePath.Equals(oldFilePath, StringComparison.OrdinalIgnoreCase) == false)
             {
                 throw new InvalidOperationException("系统已存在同名但不同路径的服务");
             }
@@ -69,7 +71,7 @@ namespace ServiceSelf
                 }
                 else if (line.StartsWith(wantedByPrefix, StringComparison.OrdinalIgnoreCase))
                 {
-                    wantedBy = line[..wantedByPrefix.Length].Trim();
+                    wantedBy = line[wantedByPrefix.Length..].Trim();
                 }
 
                 if (filePath.Length > 0 && wantedBy.Length > 0)

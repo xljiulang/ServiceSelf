@@ -83,7 +83,7 @@ namespace ServiceSelf
             else
             {
                 var oldFilePath = QueryServiceFilePath(oldServiceHandle);
-                if (string.Equals(filePath, oldFilePath, StringComparison.OrdinalIgnoreCase) == false)
+                if (filePath.Equals(oldFilePath, StringComparison.OrdinalIgnoreCase) == false)
                 {
                     throw new InvalidOperationException("系统已存在同名但不同路径的服务");
                 }
