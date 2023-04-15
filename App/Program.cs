@@ -1,8 +1,6 @@
-﻿using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ServiceSelf;
-using System.IO;
 
 namespace App
 {
@@ -13,14 +11,16 @@ namespace App
             // 创建Host之前调用Service.UseServiceSelf(args)
             if (Service.UseServiceSelf(args))
             {
-                var builder = WebApplication.CreateBuilder(args);
+                var host = Host.CreateDefaultBuilder(args)
+                    // 为Host配置UseServiceSelf()
+                    .UseServiceSelf()
+                    .ConfigureServices(service =>
+                    {
+                        service.AddHostedService<AppHostedService>();
+                    })
+                    .Build();
 
-                // 为Host配置UseServiceSelf()
-                builder.Host.UseServiceSelf();
-
-                var app = builder.Build();
-                app.MapGet("/", context => context.Response.WriteAsync("hello ServiceSelf"));
-                app.Run();
+                host.Run();
             }
         }
     }
