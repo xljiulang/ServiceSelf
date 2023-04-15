@@ -112,6 +112,11 @@ namespace ServiceSelf
             options.OSLinux.Service["ExecStart"] = execStart;
             options.OSLinux.Service["WorkingDirectory"] = workingDirectory;
 
+            if (string.IsNullOrEmpty(options.OSLinux.Service.Type))
+            {
+                options.OSLinux.Service.Type = "notify";
+            }
+
             if (string.IsNullOrEmpty(options.OSLinux.Install.WantedBy))
             {
                 options.OSLinux.Install.WantedBy = "multi-user.target";

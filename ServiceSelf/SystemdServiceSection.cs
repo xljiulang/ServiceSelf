@@ -14,6 +14,21 @@
         }
 
         /// <summary>
+        /// 服务类型
+        /// <para>simple在此模式下，systemd认为服务进程将始终保持在前台运行，而且不会退出直到被显式停止</para>
+        /// <para>forking 在此模式下，systemd假定服务进程会在后台运行，并会派生出一个子进程来完成实际工作。</para>
+        /// <para>oneshot 在此模式下，systemd假定服务进程只需要在系统启动时运行一次，然后立即退出</para>
+        /// <para>dbus 在此模式下，systemd将通过DBus接口与服务进程通信。</para>
+        /// <para>notify 服务进程可以通过发送通知消息来表明它已经启动</para>
+        /// <para>idle 服务进程应该尽可能推迟启动</para> 
+        /// </summary>
+        public string? Type
+        {
+            get => Get(nameof(Type));
+            set => Set(nameof(Type), value);
+        }
+
+        /// <summary>
         /// 为服务定义环境变量
         /// </summary>
         public string? Environment
