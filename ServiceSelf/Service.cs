@@ -51,7 +51,7 @@ namespace ServiceSelf
         /// <exception cref="PlatformNotSupportedException"></exception>
         public static bool UseServiceSelf(string[] args, string? serviceName = null, IEnumerable<Argument>? serviceArguments = null)
         {
-            var serviceOptions = serviceArguments == null ? null : new ServiceOptions { Arguments = serviceArguments };
+            var serviceOptions = new ServiceOptions { Arguments = serviceArguments };
             return UseServiceSelf(args, serviceName, serviceOptions);
         }
 
