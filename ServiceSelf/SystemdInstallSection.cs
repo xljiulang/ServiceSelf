@@ -14,6 +14,19 @@
         }
 
         /// <summary>
+        /// Install章节
+        /// </summary>
+        /// <param name="section"></param>
+        public SystemdInstallSection(SystemdInstallSection section)
+            : this()
+        {
+            foreach (var item in section)
+            {
+                this[item.Key] = item.Value;
+            }
+        }
+
+        /// <summary>
         /// 将单元链接到提供特定功能的.target单元
         /// </summary>
         public string? WantedBy

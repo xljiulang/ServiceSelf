@@ -67,7 +67,7 @@ namespace ServiceSelf
         /// <exception cref="PlatformNotSupportedException"></exception>
         public static bool UseServiceSelf(string[] args, string? serviceName, ServiceOptions? serviceOptions)
         {
-            // windows服务模式时需要将工作目录参数设置到环境变化
+            // windows服务模式时需要将工作目录参数设置到环境变量
             if (WindowsServiceHelpers.IsWindowsService())
             {
                 return WindowsService.UseWorkingDirectory(args);

@@ -108,21 +108,22 @@ namespace ServiceSelf
                 ? Path.GetDirectoryName(filePath)
                 : Path.GetFullPath(options.WorkingDirectory);
 
-            options.OSLinux.Unit["Description"] = options.Description;
-            options.OSLinux.Service["ExecStart"] = execStart;
-            options.OSLinux.Service["WorkingDirectory"] = workingDirectory;
+            var linuxOptions = options.OSLinux.Clone();
+            linuxOptions.Unit["Description"] = options.Description;
+            linuxOptions.Service["ExecStart"] = execStart;
+            linuxOptions.Service["WorkingDirectory"] = workingDirectory;
 
-            if (string.IsNullOrEmpty(options.OSLinux.Service.Type))
+            if (string.IsNullOrEmpty(linuxOptions.Service.Type))
             {
-                options.OSLinux.Service.Type = "notify";
+                linuxOptions.Service.Type = "notify";
             }
 
-            if (string.IsNullOrEmpty(options.OSLinux.Install.WantedBy))
+            if (string.IsNullOrEmpty(linuxOptions.Install.WantedBy))
             {
-                options.OSLinux.Install.WantedBy = "multi-user.target";
+                linuxOptions.Install.WantedBy = "multi-user.target";
             }
 
-            return options.OSLinux.ToString();
+            return linuxOptions.ToString();
         }
 
 

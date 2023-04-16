@@ -14,6 +14,19 @@
         }
 
         /// <summary>
+        /// Service章节
+        /// </summary>
+        /// <param name="section"></param>
+        public SystemdServiceSection(SystemdServiceSection section)
+            : this()
+        {
+            foreach (var item in section)
+            {
+                this[item.Key] = item.Value;
+            }
+        }
+
+        /// <summary>
         /// 服务类型
         /// <para>simple在此模式下，systemd认为服务进程将始终保持在前台运行，而且不会退出直到被显式停止</para>
         /// <para>forking 在此模式下，systemd假定服务进程会在后台运行，并会派生出一个子进程来完成实际工作。</para>

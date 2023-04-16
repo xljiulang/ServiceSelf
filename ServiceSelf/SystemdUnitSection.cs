@@ -14,6 +14,19 @@
         }
 
         /// <summary>
+        /// Unit章节
+        /// </summary>
+        /// <param name="section"></param>
+        public SystemdUnitSection(SystemdUnitSection section)
+            : this()
+        {
+            foreach (var item in section)
+            {
+                this[item.Key] = item.Value;
+            }
+        }
+
+        /// <summary>
         /// 单元启动后必须启动的其他单元列表
         /// </summary>
         public string? After
