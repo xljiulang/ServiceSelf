@@ -38,8 +38,7 @@ namespace ServiceSelf
         /// <returns></returns>
         protected string? Get(string key)
         {
-            this.nodes.TryGetValue(key, out var value);
-            return value;
+            return this.nodes.GetValueOrDefault(key);
         }
 
         /// <summary>
