@@ -81,7 +81,7 @@ namespace ServiceSelf
             }
         }
 
-        private SafeServiceHandle CreateService(SafeServiceHandle managerHandle, string filePath, ServiceOptions options)
+        private unsafe SafeServiceHandle CreateService(SafeServiceHandle managerHandle, string filePath, ServiceOptions options)
         {
             var arguments = options.Arguments ?? Enumerable.Empty<Argument>();
             arguments = string.IsNullOrEmpty(options.WorkingDirectory)
@@ -115,6 +115,23 @@ namespace ServiceSelf
                 Marshal.StructureToPtr(desc, pDesc, false);
                 ChangeServiceConfig2(serviceHandle, ServiceInfoLevel.SERVICE_CONFIG_DESCRIPTION, pDesc);
                 Marshal.FreeHGlobal(pDesc);
+            }
+
+
+            var action = new SC_ACTION
+            {
+                Type = (SC_ACTION_TYPE)options.OSWindows.FailureActionType,
+            };
+            var failureAction = new SERVICE_FAILURE_ACTIONS
+            {
+                cActions = 1,
+                lpsaActions = &action,
+                dwResetPeriod = (int)TimeSpan.FromDays(1d).TotalSeconds
+            };
+
+            if (ChangeServiceConfig2(serviceHandle, ServiceInfoLevel.SERVICE_CONFIG_FAILURE_ACTIONS, &failureAction) == false)
+            {
+                throw new Win32Exception();
             }
 
             return serviceHandle;

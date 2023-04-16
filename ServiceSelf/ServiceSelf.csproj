@@ -5,6 +5,7 @@
 		<Copyright>Copyright © laojiu 2023-2023</Copyright>
 
 		<Nullable>enable</Nullable>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<TargetFrameworks>netcoreapp3.1;net6.0</TargetFrameworks>
 		<Description>为.NET 泛型主机的应用程序提供自安装为服务进程的能力</Description>
 		<Authors>laojiu</Authors>
