@@ -8,8 +8,18 @@ namespace App
     {
         static void Main(string[] args)
         {
-            // 创建Host之前调用Service.UseServiceSelf(args)
-            if (Service.UseServiceSelf(args))
+            var serviceName = "app";
+            var serviceOptions = new ServiceOptions
+            {
+                Arguments = new[] { new Argument("key", "value") },
+                Description = "这是演示示例应用",
+            };
+            serviceOptions.OSLinux.Service.Restart = "always";
+            serviceOptions.OSLinux.Service.RestartSec = "10";
+            serviceOptions.OSWindows.DisplayName = "演示示例";
+            serviceOptions.OSWindows.ServiceStartName = "NT AUTHORITY\\NetworkService";
+
+            if (Service.UseServiceSelf(args, serviceName, serviceOptions))
             {
                 var host = Host.CreateDefaultBuilder(args)
                     // 为Host配置UseServiceSelf()
