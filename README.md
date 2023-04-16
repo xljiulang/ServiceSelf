@@ -35,7 +35,7 @@ static void Main(string[] args)
     serviceOptions.OSLinux.Service.Restart = "always";
     serviceOptions.OSLinux.Service.RestartSec = "10";
     serviceOptions.OSWindows.DisplayName = "演示示例";
-    serviceOptions.OSWindows.ServiceStartName = "NT AUTHORITY\\NetworkService";
+    serviceOptions.OSWindows.FailureActionType = WindowsServiceActionType.Restart;
 
     if (Service.UseServiceSelf(args, serviceName, serviceOptions))
     {
