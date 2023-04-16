@@ -4,18 +4,13 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using static PInvoke.AdvApi32;
 
 namespace ServiceSelf
 {
     sealed class WindowsService : Service
     {
         private const string workingDirArgName = "WD";
-
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        private struct SERVICE_DESCRIPTION
-        {
-            public string lpDescription;
-        }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         private struct QUERY_SERVICE_CONFIG
@@ -31,12 +26,8 @@ namespace ServiceSelf
             public string lpDisplayName;
         }
 
-        [DllImport("advapi32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        private static extern bool QueryServiceConfig(
-            AdvApi32.SafeServiceHandle serviceHandle,
-            IntPtr buffer,
-            int bufferSize,
-            out int bytesNeeded);
+        [DllImport(nameof(AdvApi32), CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern bool QueryServiceConfig(SafeServiceHandle serviceHandle, IntPtr buffer, int bufferSize, out int bytesNeeded);
 
 
         [SupportedOSPlatform("windows")]
@@ -65,14 +56,14 @@ namespace ServiceSelf
         [SupportedOSPlatform("windows")]
         public override void CreateStart(string filePath, ServiceOptions options)
         {
-            using var managerHandle = AdvApi32.OpenSCManager(null, null, AdvApi32.ServiceManagerAccess.SC_MANAGER_ALL_ACCESS);
+            using var managerHandle = OpenSCManager(null, null, ServiceManagerAccess.SC_MANAGER_ALL_ACCESS);
             if (managerHandle.IsInvalid == true)
             {
                 throw new Win32Exception();
             }
 
             filePath = Path.GetFullPath(filePath);
-            using var oldServiceHandle = AdvApi32.OpenService(managerHandle, this.Name, AdvApi32.ServiceAccess.SERVICE_ALL_ACCESS);
+            using var oldServiceHandle = OpenService(managerHandle, this.Name, ServiceAccess.SERVICE_ALL_ACCESS);
 
             if (oldServiceHandle.IsInvalid)
             {
@@ -90,7 +81,7 @@ namespace ServiceSelf
             }
         }
 
-        private AdvApi32.SafeServiceHandle CreateService(AdvApi32.SafeServiceHandle managerHandle, string filePath, ServiceOptions options)
+        private SafeServiceHandle CreateService(SafeServiceHandle managerHandle, string filePath, ServiceOptions options)
         {
             var arguments = options.Arguments ?? Enumerable.Empty<Argument>();
             arguments = string.IsNullOrEmpty(options.WorkingDirectory)
@@ -101,10 +92,10 @@ namespace ServiceSelf
                 managerHandle,
                 this.Name,
                 options.OSWindows.DisplayName,
-                AdvApi32.ServiceAccess.SERVICE_ALL_ACCESS,
-                AdvApi32.ServiceType.SERVICE_WIN32_OWN_PROCESS,
-                AdvApi32.ServiceStartType.SERVICE_AUTO_START,
-                AdvApi32.ServiceErrorControl.SERVICE_ERROR_NORMAL,
+                ServiceAccess.SERVICE_ALL_ACCESS,
+                ServiceType.SERVICE_WIN32_OWN_PROCESS,
+                ServiceStartType.SERVICE_AUTO_START,
+                ServiceErrorControl.SERVICE_ERROR_NORMAL,
                 $@"""{filePath}"" {string.Join(' ', arguments)}",
                 lpLoadOrderGroup: null,
                 lpdwTagId: 0,
@@ -119,17 +110,17 @@ namespace ServiceSelf
 
             if (string.IsNullOrEmpty(options.Description) == false)
             {
-                var desc = new SERVICE_DESCRIPTION { lpDescription = options.Description };
+                var desc = new ServiceDescription { lpDescription = options.Description };
                 var pDesc = Marshal.AllocHGlobal(Marshal.SizeOf(desc));
                 Marshal.StructureToPtr(desc, pDesc, false);
-                AdvApi32.ChangeServiceConfig2(serviceHandle, AdvApi32.ServiceInfoLevel.SERVICE_CONFIG_DESCRIPTION, pDesc);
+                ChangeServiceConfig2(serviceHandle, ServiceInfoLevel.SERVICE_CONFIG_DESCRIPTION, pDesc);
                 Marshal.FreeHGlobal(pDesc);
             }
 
             return serviceHandle;
         }
 
-        private static string QueryServiceFilePath(AdvApi32.SafeServiceHandle serviceHandle)
+        private static string QueryServiceFilePath(SafeServiceHandle serviceHandle)
         {
             const int ERROR_INSUFFICIENT_BUFFER = 122;
             if (QueryServiceConfig(serviceHandle, IntPtr.Zero, 0, out var bytesNeeded) == false)
@@ -173,15 +164,15 @@ namespace ServiceSelf
             }
         }
 
-        private static void StartService(AdvApi32.SafeServiceHandle serviceHandle)
+        private static void StartService(SafeServiceHandle serviceHandle)
         {
-            var status = new AdvApi32.SERVICE_STATUS();
-            if (AdvApi32.QueryServiceStatus(serviceHandle, ref status) == false)
+            var status = new SERVICE_STATUS();
+            if (QueryServiceStatus(serviceHandle, ref status) == false)
             {
                 throw new Win32Exception();
             }
 
-            if (status.dwCurrentState != AdvApi32.ServiceState.SERVICE_RUNNING)
+            if (status.dwCurrentState != ServiceState.SERVICE_RUNNING)
             {
                 if (AdvApi32.StartService(serviceHandle, 0, null) == false)
                 {
@@ -196,29 +187,29 @@ namespace ServiceSelf
         [SupportedOSPlatform("windows")]
         public override void StopDelete()
         {
-            using var managerHandle = AdvApi32.OpenSCManager(null, null, AdvApi32.ServiceManagerAccess.SC_MANAGER_ALL_ACCESS);
+            using var managerHandle = OpenSCManager(null, null, ServiceManagerAccess.SC_MANAGER_ALL_ACCESS);
             if (managerHandle.IsInvalid == true)
             {
                 throw new Win32Exception();
             }
 
-            using var serviceHandle = AdvApi32.OpenService(managerHandle, this.Name, AdvApi32.ServiceAccess.SERVICE_ALL_ACCESS);
+            using var serviceHandle = OpenService(managerHandle, this.Name, ServiceAccess.SERVICE_ALL_ACCESS);
             if (serviceHandle.IsInvalid == true)
             {
                 return;
             }
 
-            var status = new AdvApi32.SERVICE_STATUS();
-            if (AdvApi32.QueryServiceStatus(serviceHandle, ref status) == true)
+            var status = new SERVICE_STATUS();
+            if (QueryServiceStatus(serviceHandle, ref status) == true)
             {
-                if (status.dwCurrentState != AdvApi32.ServiceState.SERVICE_STOP_PENDING &&
-                    status.dwCurrentState != AdvApi32.ServiceState.SERVICE_STOPPED)
+                if (status.dwCurrentState != ServiceState.SERVICE_STOP_PENDING &&
+                    status.dwCurrentState != ServiceState.SERVICE_STOPPED)
                 {
-                    AdvApi32.ControlService(serviceHandle, AdvApi32.ServiceControl.SERVICE_CONTROL_STOP, ref status);
+                    ControlService(serviceHandle, ServiceControl.SERVICE_CONTROL_STOP, ref status);
                 }
             }
 
-            if (AdvApi32.DeleteService(serviceHandle) == false)
+            if (DeleteService(serviceHandle) == false)
             {
                 throw new Win32Exception();
             }
