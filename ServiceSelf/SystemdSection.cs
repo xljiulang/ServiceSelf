@@ -49,7 +49,14 @@ namespace ServiceSelf
         /// <param name="value"></param>
         protected void Set(string key, string? value)
         {
-            this.nodes[key] = value;
+            if (string.IsNullOrEmpty(value))
+            {
+                this.nodes.Remove(key);
+            }
+            else
+            {
+                this.nodes[key] = value;
+            }
         }
 
         /// <summary>
