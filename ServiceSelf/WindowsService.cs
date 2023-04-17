@@ -225,7 +225,7 @@ namespace ServiceSelf
             }
         }
 
-        private static void StopService(SafeServiceHandle serviceHandle, TimeSpan maxWaitTime)
+        private static unsafe void StopService(SafeServiceHandle serviceHandle, TimeSpan maxWaitTime)
         {
             var status = new SERVICE_STATUS();
             if (QueryServiceStatus(serviceHandle, ref status) == false)
@@ -241,6 +241,12 @@ namespace ServiceSelf
             const int SERVICE_ACCEPT_STOP = 0x00000001;
             if ((status.dwControlsAccepted & SERVICE_ACCEPT_STOP) == SERVICE_ACCEPT_STOP)
             {
+                var failureAction = new SERVICE_FAILURE_ACTIONS();
+                if (ChangeServiceConfig2(serviceHandle, ServiceInfoLevel.SERVICE_CONFIG_FAILURE_ACTIONS, &failureAction) == false)
+                {
+                    throw new Win32Exception();
+                }
+
                 if (ControlService(serviceHandle, ServiceControl.SERVICE_CONTROL_STOP, ref status) == false)
                 {
                     throw new Win32Exception();
