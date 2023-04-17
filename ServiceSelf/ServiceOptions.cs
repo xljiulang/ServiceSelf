@@ -25,11 +25,11 @@ namespace ServiceSelf
         /// <summary>
         /// 获取仅适用于linux的选项
         /// </summary>
-        public LinuxServiceOptions OSLinux { get; } = new LinuxServiceOptions();
+        public LinuxServiceOptions Linux { get; } = new LinuxServiceOptions();
 
         /// <summary>
         /// 获取仅适用于windows的选项
         /// </summary>
-        public WindowsServiceOptions OSWindows { get; } = new WindowsServiceOptions();
+        public WindowsServiceOptions Windows { get; } = new WindowsServiceOptions();
     }
 }

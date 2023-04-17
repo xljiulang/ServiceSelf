@@ -1,9 +1,11 @@
 ﻿using PInvoke;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using System.Threading;
 using static PInvoke.AdvApi32;
 
 namespace ServiceSelf
@@ -91,7 +93,7 @@ namespace ServiceSelf
             var serviceHandle = AdvApi32.CreateService(
                 managerHandle,
                 this.Name,
-                options.OSWindows.DisplayName,
+                options.Windows.DisplayName,
                 ServiceAccess.SERVICE_ALL_ACCESS,
                 ServiceType.SERVICE_WIN32_OWN_PROCESS,
                 ServiceStartType.SERVICE_AUTO_START,
@@ -99,9 +101,9 @@ namespace ServiceSelf
                 $@"""{filePath}"" {string.Join(' ', arguments)}",
                 lpLoadOrderGroup: null,
                 lpdwTagId: 0,
-                lpDependencies: options.OSWindows.Dependencies,
-                lpServiceStartName: options.OSWindows.ServiceStartName,
-                lpPassword: options.OSWindows.Password);
+                lpDependencies: options.Windows.Dependencies,
+                lpServiceStartName: options.Windows.ServiceStartName,
+                lpPassword: options.Windows.Password);
 
             if (serviceHandle.IsInvalid == true)
             {
@@ -120,7 +122,7 @@ namespace ServiceSelf
 
             var action = new SC_ACTION
             {
-                Type = (SC_ACTION_TYPE)options.OSWindows.FailureActionType,
+                Type = (SC_ACTION_TYPE)options.Windows.FailureActionType,
             };
             var failureAction = new SERVICE_FAILURE_ACTIONS
             {
@@ -216,20 +218,51 @@ namespace ServiceSelf
                 return;
             }
 
-            var status = new SERVICE_STATUS();
-            if (QueryServiceStatus(serviceHandle, ref status) == true)
-            {
-                if (status.dwCurrentState != ServiceState.SERVICE_STOP_PENDING &&
-                    status.dwCurrentState != ServiceState.SERVICE_STOPPED)
-                {
-                    ControlService(serviceHandle, ServiceControl.SERVICE_CONTROL_STOP, ref status);
-                }
-            }
-
+            StopService(serviceHandle, TimeSpan.FromSeconds(30d));
             if (DeleteService(serviceHandle) == false)
             {
                 throw new Win32Exception();
             }
+        }
+
+        private static void StopService(SafeServiceHandle serviceHandle, TimeSpan maxWaitTime)
+        {
+            var status = new SERVICE_STATUS();
+            if (QueryServiceStatus(serviceHandle, ref status) == false)
+            {
+                throw new Win32Exception();
+            }
+
+            if (status.dwCurrentState == ServiceState.SERVICE_STOPPED)
+            {
+                return;
+            }
+
+            const int SERVICE_ACCEPT_STOP = 0x00000001;
+            if ((status.dwControlsAccepted & SERVICE_ACCEPT_STOP) == SERVICE_ACCEPT_STOP)
+            {
+                if (ControlService(serviceHandle, ServiceControl.SERVICE_CONTROL_STOP, ref status) == false)
+                {
+                    throw new Win32Exception();
+                }
+            }
+
+            var stopwatch = Stopwatch.StartNew();
+            while (stopwatch.Elapsed < maxWaitTime)
+            {
+                if (status.dwCurrentState == ServiceState.SERVICE_STOPPED)
+                {
+                    return;
+                }
+
+                Thread.Sleep(TimeSpan.FromMilliseconds(100d));
+                if (QueryServiceStatus(serviceHandle, ref status) == false)
+                {
+                    throw new Win32Exception();
+                }
+            }
+
+            throw new TimeoutException($"等待服务停止超过了{maxWaitTime.TotalSeconds}秒");
         }
     }
 }
