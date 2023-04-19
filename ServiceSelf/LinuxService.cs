@@ -27,8 +27,7 @@ namespace ServiceSelf
             var unitFilePath = $"/etc/systemd/system/{this.Name}.service";
             var oldFilePath = QueryServiceFilePath(unitFilePath);
 
-            if (string.IsNullOrEmpty(oldFilePath) == false &&
-                filePath.Equals(oldFilePath, StringComparison.OrdinalIgnoreCase) == false)
+            if (oldFilePath.Length > 0 && oldFilePath.Equals(filePath, StringComparison.OrdinalIgnoreCase) == false)
             {
                 throw new InvalidOperationException("系统已存在同名但不同路径的服务");
             }
@@ -48,11 +47,11 @@ namespace ServiceSelf
             SystemCtl($"enable {this.Name}.service", false);
         }
 
-        private static string? QueryServiceFilePath(string unitFilePath)
+        private static ReadOnlySpan<char> QueryServiceFilePath(string unitFilePath)
         {
             if (File.Exists(unitFilePath) == false)
             {
-                return null;
+                return ReadOnlySpan<char>.Empty;
             }
 
             var execStartPrefix = "ExecStart=".AsSpan();
@@ -85,14 +84,14 @@ namespace ServiceSelf
 
             if (filePath.IsEmpty || wantedBy.IsEmpty)
             {
-                return null;
+                return ReadOnlySpan<char>.Empty;
             }
 
             var wants = $"{wantedBy.ToString()}.wants";
             var unitFileName = Path.GetFileName(unitFilePath);
             var unitFileDir = Path.GetDirectoryName(unitFilePath);
             var unitLink = Path.Combine(unitFileDir!, wants, unitFileName);
-            return File.Exists(unitLink) ? filePath.ToString() : null;
+            return File.Exists(unitLink) ? filePath : ReadOnlySpan<char>.Empty;
         }
 
 

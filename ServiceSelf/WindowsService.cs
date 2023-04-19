@@ -75,7 +75,7 @@ namespace ServiceSelf
             else
             {
                 var oldFilePath = QueryServiceFilePath(oldServiceHandle);
-                if (filePath.Equals(oldFilePath, StringComparison.OrdinalIgnoreCase) == false)
+                if (oldFilePath.Length > 0 && oldFilePath.Equals(filePath, StringComparison.OrdinalIgnoreCase) == false)
                 {
                     throw new InvalidOperationException("系统已存在同名但不同路径的服务");
                 }
@@ -139,7 +139,7 @@ namespace ServiceSelf
             return serviceHandle;
         }
 
-        private static string QueryServiceFilePath(SafeServiceHandle serviceHandle)
+        private static ReadOnlySpan<char> QueryServiceFilePath(SafeServiceHandle serviceHandle)
         {
             const int ERROR_INSUFFICIENT_BUFFER = 122;
             if (QueryServiceConfig(serviceHandle, IntPtr.Zero, 0, out var bytesNeeded) == false)
@@ -162,19 +162,19 @@ namespace ServiceSelf
                 var binaryPathName = serviceConfig.lpBinaryPathName.AsSpan();
                 if (binaryPathName.IsEmpty)
                 {
-                    throw new FieldAccessException("系统已存在同名服务，且无法获取其文件路径");
+                    return ReadOnlySpan<char>.Empty;
                 }
 
                 if (binaryPathName[0] == '"')
                 {
                     binaryPathName = binaryPathName[1..];
                     var index = binaryPathName.IndexOf('"');
-                    return index < 0 ? binaryPathName.ToString() : binaryPathName[..index].ToString();
+                    return index < 0 ? binaryPathName : binaryPathName[..index];
                 }
                 else
                 {
                     var index = binaryPathName.IndexOf(' ');
-                    return index < 0 ? binaryPathName.ToString() : binaryPathName[..index].ToString();
+                    return index < 0 ? binaryPathName : binaryPathName[..index];
                 }
             }
             finally
@@ -255,6 +255,7 @@ namespace ServiceSelf
             }
 
             var stopwatch = Stopwatch.StartNew();
+            var statusQueryDelay = TimeSpan.FromMilliseconds(100d);
             while (stopwatch.Elapsed < maxWaitTime)
             {
                 if (status.dwCurrentState == ServiceState.SERVICE_STOPPED)
@@ -262,7 +263,7 @@ namespace ServiceSelf
                     return;
                 }
 
-                Thread.Sleep(TimeSpan.FromMilliseconds(100d));
+                Thread.Sleep(statusQueryDelay);
                 if (QueryServiceStatus(serviceHandle, ref status) == false)
                 {
                     throw new Win32Exception();
