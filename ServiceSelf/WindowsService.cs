@@ -238,8 +238,7 @@ namespace ServiceSelf
                 return;
             }
 
-            const int SERVICE_ACCEPT_STOP = 0x00000001;
-            if ((status.dwControlsAccepted & SERVICE_ACCEPT_STOP) == SERVICE_ACCEPT_STOP)
+            if (status.dwCurrentState != ServiceState.SERVICE_STOP_PENDING)
             {
                 var failureAction = new SERVICE_FAILURE_ACTIONS();
                 if (ChangeServiceConfig2(serviceHandle, ServiceInfoLevel.SERVICE_CONFIG_FAILURE_ACTIONS, &failureAction) == false)
@@ -251,6 +250,8 @@ namespace ServiceSelf
                 {
                     throw new Win32Exception();
                 }
+
+                // 这里不需要恢复SERVICE_CONFIG_FAILURE_ACTIONS，因为下面我们要删除服务
             }
 
             var stopwatch = Stopwatch.StartNew();
