@@ -33,8 +33,12 @@ namespace ServiceSelf
                 throw new InvalidOperationException("系统已存在同名但不同路径的服务");
             }
 
-            var unitContent = CreateUnitContent(filePath, options);
-            File.WriteAllText(unitFilePath, unitContent);
+            var linuxOptions = CreateLinuxOptions(filePath, options);
+            using (var fileStream = File.OpenWrite(unitFilePath))
+            {
+                using var wirter = new StreamWriter(fileStream);
+                linuxOptions.WriteTo(wirter);
+            }
 
             // SELinux
             Shell("chcon", $"--type=bin_t {filePath}", false);
@@ -92,7 +96,7 @@ namespace ServiceSelf
         }
 
 
-        private static string CreateUnitContent(string filePath, ServiceOptions options)
+        private static LinuxServiceOptions CreateLinuxOptions(string filePath, ServiceOptions options)
         {
             var execStart = filePath;
             if (options.Arguments != null)
@@ -123,7 +127,7 @@ namespace ServiceSelf
                 linuxOptions.Install.WantedBy = "multi-user.target";
             }
 
-            return linuxOptions.ToString();
+            return linuxOptions;
         }
 
 

@@ -1,4 +1,4 @@
-﻿using System.Text;
+﻿using System.IO;
 
 namespace ServiceSelf
 {
@@ -42,11 +42,20 @@ namespace ServiceSelf
         /// <returns></returns>
         public override string ToString()
         {
-            return new StringBuilder()
-                .AppendLine(this.Unit.ToString())
-                .AppendLine(this.Service.ToString())
-                .AppendLine(this.Install.ToString())
-                .ToString();
+            var writer = new StringWriter();
+            this.WriteTo(writer);
+            return writer.ToString();
+        }
+
+        /// <summary>
+        /// 写入writer
+        /// </summary>
+        /// <param name="writer"></param>
+        public void WriteTo(TextWriter writer)
+        {
+            this.Unit.WriteTo(writer);
+            this.Service.WriteTo(writer);
+            this.Install.WriteTo(writer);
         }
     }
 }

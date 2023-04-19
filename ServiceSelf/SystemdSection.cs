@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using System.Text;
+using System.IO;
 
 namespace ServiceSelf
 {
@@ -64,14 +64,24 @@ namespace ServiceSelf
         /// <returns></returns>
         public override string ToString()
         {
-            var builder = new StringBuilder().AppendLine(this.name);
-            foreach (var kv in this.nodes)
-            {
-                builder.AppendLine($"{kv.Key}={kv.Value}");
-            }
-            return builder.ToString();
+            var writer = new StringWriter();
+            this.WriteTo(writer);
+            return writer.ToString();
         }
 
+        /// <summary>
+        /// 写入writer
+        /// </summary>
+        /// <param name="writer"></param>
+        public void WriteTo(TextWriter writer)
+        {
+            writer.WriteLine(this.name);
+            foreach (var kv in this.nodes)
+            {
+                writer.WriteLine($"{kv.Key}={kv.Value}");
+            }
+            writer.WriteLine();
+        }
 
         /// <summary>
         /// 获取迭代器
