@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using System.Text.RegularExpressions;
 
 namespace ServiceSelf
 {
@@ -147,12 +148,31 @@ namespace ServiceSelf
             File.Delete(unitFilePath);
         }
 
-        private static void SystemCtl(string arguments, bool showError = true)
+        /// <summary>
+        /// 尝试查询服务的进程id
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="processId"></param>
+        /// <returns></returns>
+        public static bool TryGetProcessId(string name, out int processId)
         {
-            Shell("systemctl", arguments, showError);
+            processId = 0;
+            var output = SystemCtl($"status {name}", false);
+            if (output == null)
+            {
+                return false;
+            }
+
+            var match = Regex.Match(output, @"(?<=Main PID:\s*)(\d+)");
+            return match.Success && int.TryParse(match.Value, out processId);
         }
 
-        private static void Shell(string fileName, string arguments, bool showError = true)
+        private static string? SystemCtl(string arguments, bool showError = true)
+        {
+            return Shell("systemctl", arguments, showError);
+        }
+
+        private static string? Shell(string fileName, string arguments, bool showError = true)
         {
             var startInfo = new ProcessStartInfo
             {
@@ -162,7 +182,15 @@ namespace ServiceSelf
                 RedirectStandardOutput = true,
                 RedirectStandardError = !showError
             };
-            Process.Start(startInfo)?.WaitForExit();
+            var process = Process.Start(startInfo);
+            if (process == null)
+            {
+                return null;
+            }
+
+            var output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+            return output;
         }
 
         private static void CheckRoot()

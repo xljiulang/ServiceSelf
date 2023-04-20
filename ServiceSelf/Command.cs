@@ -6,13 +6,18 @@
     enum Command
     {
         /// <summary>
+        /// 停止并删除
+        /// </summary>
+        Stop = 0,
+
+        /// <summary>
         /// 安装并启动
         /// </summary>
         Start = 1,
 
         /// <summary>
-        /// 停止并删除
+        /// 查看日志
         /// </summary>
-        Stop = 0,
+        Logs = 2
     }
 }
