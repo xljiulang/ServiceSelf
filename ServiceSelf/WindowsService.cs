@@ -28,6 +28,20 @@ namespace ServiceSelf
             public string lpDisplayName;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        private struct SERVICE_STATUS_PROCESS
+        {
+            public ServiceType dwServiceType;
+            public ServiceState dwCurrentState;
+            public uint dwControlsAccepted;
+            public uint dwWin32ExitCode;
+            public uint dwServiceSpecificExitCode;
+            public uint dwCheckPoint;
+            public uint dwWaitHint;
+            public uint dwProcessId;
+            public uint dwServiceFlags;
+        }
+
         [DllImport(nameof(AdvApi32), CharSet = CharSet.Auto, SetLastError = true)]
         private static extern bool QueryServiceConfig(SafeServiceHandle serviceHandle, IntPtr buffer, int bufferSize, out int bytesNeeded);
 
@@ -271,6 +285,37 @@ namespace ServiceSelf
             }
 
             throw new TimeoutException($"等待服务停止超过了{maxWaitTime.TotalSeconds}秒");
+        }
+
+        /// <summary>
+        /// 尝试查询服务的进程id
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="processId"></param>
+        /// <returns></returns>
+        public static unsafe bool TryGetProcessId(string name, out int processId)
+        {
+            processId = 0;
+            using var managerHandle = OpenSCManager(null, null, ServiceManagerAccess.SC_MANAGER_ALL_ACCESS);
+            if (managerHandle.IsInvalid == true)
+            {
+                return false;
+            }
+
+            using var serviceHandle = OpenService(managerHandle, name, ServiceAccess.SERVICE_ALL_ACCESS);
+            if (serviceHandle.IsInvalid == true)
+            {
+                return false;
+            }
+
+            var status = new SERVICE_STATUS_PROCESS();
+            if (QueryServiceStatusEx(serviceHandle, SC_STATUS_TYPE.SC_STATUS_PROCESS_INFO, &status, sizeof(SERVICE_STATUS_PROCESS), out _) == false)
+            {
+                return false;
+            }
+
+            processId = (int)status.dwProcessId;
+            return true;
         }
     }
 }

@@ -66,6 +66,10 @@ yourapp.exe start // 安装并启动服务
 yourapp.exe stop // 停止并删除服务
 ```
 
+```bat
+yourapp.exe logs // 控制台输出服务的日志
+```
+
 > linux平台
 
 ```bash
@@ -74,4 +78,8 @@ sudo ./yourapp start // 安装并启动服务
 
 ```bash
 sudo ./yourapp stop // 停止并删除服务
+```
+
+```bash
+sudo ./yourapp logs // 控制台输出服务的日志
 ```
