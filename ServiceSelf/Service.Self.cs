@@ -1,11 +1,7 @@
-﻿using Microsoft.Diagnostics.NETCore.Client;
-using Microsoft.Diagnostics.Tracing;
-using Microsoft.Extensions.Hosting.Systemd;
+﻿using Microsoft.Extensions.Hosting.Systemd;
 using Microsoft.Extensions.Hosting.WindowsServices;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.Tracing;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -106,56 +102,8 @@ namespace ServiceSelf
             }
             else if (command == Command.Logs)
             {
-                if (TryGetServiceProcessId(name, out var processId))
-                {
-                    PrintEventSourceLogs(processId);
-                }
+                service.ReadLogs(log => log.WriteTo(Console.Out));
             }
-        }
-
-        /// <summary>
-        /// 查找服务进程id
-        /// </summary>
-        /// <param name="name">服务名</param> 
-        /// <param name="processId"></param>
-        /// <returns></returns>
-        private static bool TryGetServiceProcessId(string name, out int processId)
-        {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                return WindowsService.TryGetProcessId(name, out processId);
-            }
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
-                return LinuxService.TryGetProcessId(name, out processId);
-            }
-
-            throw new PlatformNotSupportedException();
-        }
-
-        /// <summary>
-        /// 打印EventSource日志
-        /// </summary>
-        /// <param name="processId"></param>
-        private static void PrintEventSourceLogs(int processId)
-        {
-            var client = new DiagnosticsClient(processId);
-            var provider = new EventPipeProvider("Microsoft-Extensions-Logging", EventLevel.Informational, (long)EventKeywords.All);
-            using var session = client.StartEventPipeSession(provider, false);
-            var source = new EventPipeEventSource(session.EventStream);
-            source.Dynamic.AddCallbackForProviderEvent(provider.Name, "FormattedMessage", traceEvent =>
-            {
-                var level = (LogLevel)traceEvent.PayloadByName("Level");
-                var categoryName = traceEvent.PayloadByName("LoggerName");
-                var message = traceEvent.PayloadByName("EventName");
-
-                Console.WriteLine($"{DateTimeOffset.Now:O} [{level}]");
-                Console.WriteLine(categoryName);
-                Console.WriteLine(message);
-                Console.WriteLine();
-            });
-            source.Process();
         }
     }
 }

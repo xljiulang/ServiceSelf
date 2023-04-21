@@ -288,21 +288,20 @@ namespace ServiceSelf
         }
 
         /// <summary>
-        /// 尝试查询服务的进程id
+        /// 尝试获取服务的进程id
         /// </summary>
-        /// <param name="name"></param>
         /// <param name="processId"></param>
         /// <returns></returns>
-        public static unsafe bool TryGetProcessId(string name, out int processId)
+        protected unsafe override bool TryGetProcessId(out int processId)
         {
             processId = 0;
             using var managerHandle = OpenSCManager(null, null, ServiceManagerAccess.SC_MANAGER_ALL_ACCESS);
             if (managerHandle.IsInvalid == true)
             {
-                return false;
+                throw new Win32Exception();
             }
 
-            using var serviceHandle = OpenService(managerHandle, name, ServiceAccess.SERVICE_ALL_ACCESS);
+            using var serviceHandle = OpenService(managerHandle, this.Name, ServiceAccess.SERVICE_ALL_ACCESS);
             if (serviceHandle.IsInvalid == true)
             {
                 return false;

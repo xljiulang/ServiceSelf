@@ -148,16 +148,18 @@ namespace ServiceSelf
             File.Delete(unitFilePath);
         }
 
+
         /// <summary>
         /// 尝试查询服务的进程id
-        /// </summary>
-        /// <param name="name"></param>
+        /// </summary> 
         /// <param name="processId"></param>
         /// <returns></returns>
-        public static bool TryGetProcessId(string name, out int processId)
+        protected override bool TryGetProcessId(out int processId)
         {
+            CheckRoot();
+
             processId = 0;
-            var output = SystemCtl($"status {name}", false);
+            var output = SystemCtl($"status {this.Name}", false);
             if (output == null)
             {
                 return false;
