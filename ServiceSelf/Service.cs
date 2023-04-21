@@ -34,18 +34,6 @@ namespace ServiceSelf
         /// </summary>
         public abstract void StopDelete();
 
-
-
-        /// <summary>
-        /// 监听服务进程的LoggingEventSource的日志
-        /// </summary>
-        /// <param name="callback">日志回调</param>
-        /// <returns></returns>
-        public bool ListenLogs(Action<LogItem> callback)
-        {
-            return this.ListenLogs(null, callback);
-        }
-
         /// <summary>
         /// 监听服务进程的LoggingEventSource的日志
         /// </summary>
@@ -62,7 +50,7 @@ namespace ServiceSelf
         /// </summary>
         /// <param name="processId"></param>
         /// <returns></returns>
-        protected abstract bool TryGetProcessId(out int processId); 
+        protected abstract bool TryGetProcessId(out int processId);
 
 
         /// <summary>
