@@ -159,14 +159,25 @@ namespace ServiceSelf
             CheckRoot();
 
             processId = 0;
-            var output = SystemCtl($"status {this.Name}", false);
+            var output = SystemCtl($"show -p MainPID {this.Name}.service", false);
             if (output == null)
             {
                 return false;
             }
 
-            var match = Regex.Match(output, @"(?<=Main PID:\s*)(\d+)");
-            return match.Success && int.TryParse(match.Value, out processId);
+            var match = Regex.Match(output, @"\d+");
+            if (match.Success && int.TryParse(match.Value, out processId) && processId > 0)
+            {
+                try
+                {
+                    Process.GetProcessById(processId).Dispose();
+                    return true;
+                }
+                catch (Exception)
+                {
+                }
+            }
+            return false;
         }
 
         private static string? SystemCtl(string arguments, bool showError = true)
