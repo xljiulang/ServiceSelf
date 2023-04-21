@@ -14,6 +14,9 @@ namespace ServiceSelf
         [DllImport("libc", SetLastError = true)]
         private static extern uint geteuid();
 
+        [DllImport("libc")]
+        private static extern int kill(int pid, int sig);
+
         public LinuxService(string name)
             : base(name)
         {
@@ -166,18 +169,10 @@ namespace ServiceSelf
             }
 
             var match = Regex.Match(output, @"\d+");
-            if (match.Success && int.TryParse(match.Value, out processId) && processId > 0)
-            {
-                try
-                {
-                    Process.GetProcessById(processId).Dispose();
-                    return true;
-                }
-                catch (Exception)
-                {
-                }
-            }
-            return false;
+            return match.Success &&
+                int.TryParse(match.Value, out processId) &&
+                processId > 0 &&
+                kill(processId, 0) == 0;
         }
 
         private static string? SystemCtl(string arguments, bool showError = true)
