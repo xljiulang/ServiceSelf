@@ -65,7 +65,7 @@ namespace ServiceSelf
         private bool ReadLogs(int processId, Action<LogItem> callBack)
         {
             var client = new DiagnosticsClient(processId);
-            var provider = new EventPipeProvider("Microsoft-Extensions-Logging", EventLevel.Informational, (long)EventKeywords.All);
+            var provider = new EventPipeProvider("Microsoft-Extensions-Logging", EventLevel.LogAlways, (long)EventKeywords.All);
             using var session = client.StartEventPipeSession(provider, false);
             using var enventSource = new EventPipeEventSource(session.EventStream);
 
