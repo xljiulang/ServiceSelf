@@ -67,7 +67,7 @@ yourapp.exe stop // 停止并删除服务
 ```
 
 ```bat
-yourapp.exe logs // 控制台输出服务的日志
+yourapp.exe logs [filter="key words"] // 控制台输出服务的日志
 ```
 
 > linux平台
@@ -81,5 +81,5 @@ sudo ./yourapp stop // 停止并删除服务
 ```
 
 ```bash
-sudo ./yourapp logs // 控制台输出服务的日志
+sudo ./yourapp logs [filter="key words"] // 控制台输出服务的日志
 ```

@@ -54,7 +54,8 @@ namespace ServiceSelf
             if (Enum.TryParse<Command>(args.FirstOrDefault(), true, out var command) &&
                 Enum.IsDefined(typeof(Command), command))
             {
-                UseCommand(command, serviceName, serviceOptions);
+                var arguments = args.Skip(1);
+                UseCommand(command, arguments, serviceName, serviceOptions);
                 return false;
             }
 
@@ -67,12 +68,13 @@ namespace ServiceSelf
         /// 应用服务命令
         /// </summary>
         /// <param name="command"></param> 
+        /// <param name="arguments">剩余参数</param>
         /// <param name="name">服务名</param>
-        /// <param name="options">服务选项</param>
+        /// <param name="options">服务选项</param> 
         /// <returns></returns>
         /// <exception cref="FileNotFoundException"></exception>
         /// <exception cref="PlatformNotSupportedException"></exception>
-        private static void UseCommand(Command command, string? name, ServiceOptions? options)
+        private static void UseCommand(Command command, IEnumerable<string> arguments, string? name, ServiceOptions? options)
         {
 #if NET6_0_OR_GREATER
             var filePath = Environment.ProcessPath;
@@ -102,7 +104,8 @@ namespace ServiceSelf
             }
             else if (command == Command.Logs)
             {
-                service.ReadLogs(log => log.WriteTo(Console.Out));
+                var filter = Argument.GetValueOrDefault(arguments, "filter");
+                service.ListenLogs(filter, log => log.WriteTo(Console.Out));
             }
         }
     }

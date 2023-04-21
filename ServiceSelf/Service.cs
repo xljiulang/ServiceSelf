@@ -1,8 +1,4 @@
-﻿using Microsoft.Diagnostics.NETCore.Client;
-using Microsoft.Diagnostics.Tracing;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Diagnostics.Tracing;
+﻿using System;
 using System.Runtime.InteropServices;
 
 namespace ServiceSelf
@@ -38,14 +34,27 @@ namespace ServiceSelf
         /// </summary>
         public abstract void StopDelete();
 
+
+
         /// <summary>
-        /// 读取服务进程的LoggingEventSource的日志
+        /// 监听服务进程的LoggingEventSource的日志
         /// </summary>
-        /// <param name="callBack">日志回调</param>
+        /// <param name="callback">日志回调</param>
         /// <returns></returns>
-        public bool ReadLogs(Action<LogItem> callBack)
+        public bool ListenLogs(Action<LogItem> callback)
         {
-            return this.TryGetProcessId(out var processId) && this.ReadLogs(processId, callBack);
+            return this.ListenLogs(null, callback);
+        }
+
+        /// <summary>
+        /// 监听服务进程的LoggingEventSource的日志
+        /// </summary>
+        /// <param name="filter">过滤器</param>
+        /// <param name="callback">日志回调</param>
+        /// <returns></returns>
+        public bool ListenLogs(string? filter, Action<LogItem> callback)
+        {
+            return this.TryGetProcessId(out var processId) && LoggingDiagnosticsClient.ListenLogs(processId, filter, callback);
         }
 
         /// <summary>
@@ -53,33 +62,7 @@ namespace ServiceSelf
         /// </summary>
         /// <param name="processId"></param>
         /// <returns></returns>
-        protected abstract bool TryGetProcessId(out int processId);
-
-        /// <summary>
-        /// 读取指定进程LoggingEventSource的日志
-        /// https://learn.microsoft.com/zh-cn/dotnet/api/microsoft.extensions.logging.eventsource.loggingeventsource?view=dotnet-plat-ext-7.0
-        /// </summary>
-        /// <param name="processId"></param>
-        /// <param name="callBack"></param>
-        /// <returns></returns>
-        private bool ReadLogs(int processId, Action<LogItem> callBack)
-        {
-            var client = new DiagnosticsClient(processId);
-            var provider = new EventPipeProvider("Microsoft-Extensions-Logging", EventLevel.LogAlways, (long)EventKeywords.All);
-            using var session = client.StartEventPipeSession(provider, false);
-            using var enventSource = new EventPipeEventSource(session.EventStream);
-
-            enventSource.Dynamic.AddCallbackForProviderEvent(provider.Name, "FormattedMessage", traceEvent =>
-            {
-                var level = (LogLevel)traceEvent.PayloadByName("Level");
-                var categoryName = (string)traceEvent.PayloadByName("LoggerName");
-                var message = (string)traceEvent.PayloadByName("EventName");
-                var log = new LogItem(level, categoryName, message);
-                callBack.Invoke(log);
-            });
-
-            return enventSource.Process();
-        }
+        protected abstract bool TryGetProcessId(out int processId); 
 
 
         /// <summary>
