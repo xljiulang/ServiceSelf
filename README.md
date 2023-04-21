@@ -1,6 +1,12 @@
 # ServiceSelf
 为[.NET 泛型主机](https://learn.microsoft.com/zh-cn/dotnet/core/extensions/generic-host)的应用程序提供自安装为服务进程的能力，支持windows和linux平台。
 
+> 功能
+
+* 自我服务安装
+* 自我服务卸载
+* 服务进程日志监听
+
 ### 1 nuget
 https://www.nuget.org/packages/ServiceSelf/
 
