@@ -5,7 +5,7 @@
 
 * 自我服务安装
 * 自我服务卸载
-* 服务进程日志监听
+* 自我服务日志监听
 
 ### 1 nuget
 https://www.nuget.org/packages/ServiceSelf/
