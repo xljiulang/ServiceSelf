@@ -314,7 +314,7 @@ namespace ServiceSelf
             }
 
             processId = (int)status.dwProcessId;
-            return true;
+            return processId > 0;
         }
     }
 }

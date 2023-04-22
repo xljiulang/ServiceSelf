@@ -1,5 +1,6 @@
 ﻿using Google.Protobuf;
 using System;
+using System.IO;
 using System.IO.Pipes;
 
 namespace ServiceSelf
@@ -14,27 +15,60 @@ namespace ServiceSelf
         /// </summary>
         /// <param name="processId"></param>
         /// <param name="filter"></param>
-        /// <param name="callback"></param>
-        /// <returns></returns>
-        public static bool ListenLogs(int processId, string? filter, Action<LogItem> callback)
+        /// <param name="callback"></param> 
+        public static void ListenLogs(int processId, string? filter, Action<LogItem> callback)
         {
-            var pipeName = $"{nameof(ServiceSelf)}_{processId}";
-            using var serverStream = new NamedPipeServerStream(pipeName);
-
-            serverStream.WaitForConnection();
-            var inputStream = new CodedInputStream(serverStream, leaveOpen: true);
-
-            while (serverStream.IsConnected)
+            var inputStream = CreateInputStream(processId);
+            if (inputStream == null)
             {
-                var logItem = new LogItem();
-                inputStream.ReadMessage(logItem);
+                return;
+            }
+
+            while (inputStream.IsAtEnd == false)
+            {
+                var logItem = ReadLogItem(inputStream);
+                if (logItem == null)
+                {
+                    break;
+                }
+
                 if (logItem.IsMatch(filter))
                 {
                     callback.Invoke(logItem);
                 }
             }
+        }
 
-            return true;
+
+        private static CodedInputStream? CreateInputStream(int processId)
+        {
+            try
+            {
+                var pipeName = $"{nameof(ServiceSelf)}_{processId}";
+                var pipeStream = new NamedPipeServerStream(pipeName);
+
+                pipeStream.WaitForConnection();
+                return new CodedInputStream(pipeStream, leaveOpen: false);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+
+        private static LogItem? ReadLogItem(CodedInputStream inputStream)
+        {
+            try
+            {
+                var logItem = new LogItem();
+                inputStream.ReadMessage(logItem);
+                return logItem;
+            }
+            catch (IOException)
+            {
+                return null;
+            }
         }
     }
 }

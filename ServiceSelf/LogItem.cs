@@ -30,7 +30,7 @@ namespace ServiceSelf
         /// <param name="writer"></param>
         public void WriteTo(TextWriter writer)
         {
-            writer.WriteLine($"{DateTimeOffset.Now:O} [{this.LogLevel}]");
+            writer.WriteLine($"{DateTimeOffset.Now:yyyy-MM-ddTHH:mm:ss.fffK} [{this.LogLevel}]");
             writer.WriteLine(this.LoggerName);
             writer.WriteLine(this.Message);
             writer.WriteLine();
