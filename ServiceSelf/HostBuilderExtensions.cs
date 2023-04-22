@@ -1,4 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
+using ServiceSelf;
 
 namespace Microsoft.Extensions.Hosting
 {
@@ -18,7 +21,11 @@ namespace Microsoft.Extensions.Hosting
         {
             if (enableLogs == true)
             {
-                hostBuilder.ConfigureLogging(builder => builder.AddEventSourceLogger());
+                hostBuilder.ConfigureLogging(builder =>
+                {
+                    var descriptor = ServiceDescriptor.Singleton<ILoggerProvider, NamedPipeLoggerProvider>();
+                    builder.Services.TryAddEnumerable(descriptor);
+                });
             }
             return hostBuilder.UseWindowsService().UseSystemd();
         }

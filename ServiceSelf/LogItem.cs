@@ -10,29 +10,33 @@ namespace ServiceSelf
     public sealed class LogItem
     {
         /// <summary>
-        /// 级别
-        /// </summary>
-        public LogLevel Level { get; }
-
-        /// <summary>
         /// 日志名称
         /// </summary>
-        public string LoggerName { get; }
+        public string LoggerName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 级别
+        /// </summary>
+        public LogLevel Level { get; set; }  
 
         /// <summary>
         /// 消息
         /// </summary>
-        public string Message { get; }
+        public string Message { get; set; } = string.Empty;
+
+        public LogItem()
+        {
+        }
 
         /// <summary>
         /// 日志记录
         /// </summary> 
-        /// <param name="level"></param>
+        /// <param name="logLevel"></param>
         /// <param name="loggerName"></param>
         /// <param name="message"></param>
-        public LogItem(LogLevel level, string loggerName, string message)
+        public LogItem(LogLevel logLevel, string loggerName, string message)
         {
-            this.Level = level;
+            this.Level = logLevel;
             this.LoggerName = loggerName;
             this.Message = message;
         }

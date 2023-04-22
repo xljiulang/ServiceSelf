@@ -42,7 +42,7 @@ namespace ServiceSelf
         /// <returns></returns>
         public bool ListenLogs(string? filter, Action<LogItem> callback)
         {
-            return this.TryGetProcessId(out var processId) && LoggingDiagnosticsClient.ListenLogs(processId, filter, callback);
+            return this.TryGetProcessId(out var processId) && NamedPipeLoggerServer.ListenLogs(processId, filter, callback);
         }
 
         /// <summary>
