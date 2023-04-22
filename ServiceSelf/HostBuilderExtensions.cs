@@ -1,4 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
+using ServiceSelf;
 
 namespace Microsoft.Extensions.Hosting
 {
@@ -9,16 +12,20 @@ namespace Microsoft.Extensions.Hosting
     {
         /// <summary>
         /// 为主机使用WindowsService和Systemd的生命周期
-        /// 同时选择是否启用EventSourceLogger来记录和监听日志
+        /// 同时选择是否启用日志记录和监听功能
         /// </summary>
         /// <param name="hostBuilder"></param>
-        /// <param name="enableLogs">是否启用日志功能，如果为true，当调用logs子命令时，将在控制台实时输出服务进程写入LoggingFactory的日志</param>
+        /// <param name="enableLogs">是否启用日志功能，设置为true后调用logs子命令时才有日志输出</param>
         /// <returns></returns>
         public static IHostBuilder UseServiceSelf(this IHostBuilder hostBuilder, bool enableLogs = true)
         {
             if (enableLogs == true)
             {
-                hostBuilder.ConfigureLogging(builder => builder.AddEventSourceLogger());
+                hostBuilder.ConfigureLogging(builder =>
+                {
+                    var descriptor = ServiceDescriptor.Singleton<ILoggerProvider, NamedPipeLoggerProvider>();
+                    builder.Services.TryAddEnumerable(descriptor);
+                });
             }
             return hostBuilder.UseWindowsService().UseSystemd();
         }

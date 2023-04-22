@@ -1,10 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<Version>1.0.3</Version>
+		<Version>1.0.4</Version>
 		<Copyright>Copyright © laojiu 2023-2023</Copyright>
 
 		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<TargetFrameworks>netcoreapp3.1;net6.0</TargetFrameworks>
 		<Description>为.NET 泛型主机的应用程序提供自安装为服务进程的能力</Description>
@@ -18,10 +19,19 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Diagnostics.NETCore.Client" Version="0.2.421201" />
-		<PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="3.1.2" />
 		<PackageReference Include="PInvoke.AdvApi32" Version="0.7.124" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="3.1.0" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="3.1.0" />
+
+		<PackageReference Include="Google.Protobuf" Version="3.22.3" />
+		<PackageReference Include="Grpc.Tools" Version="2.54.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+		</PackageReference>
 	</ItemGroup>
+
+	<ItemGroup>
+		<Protobuf Include="LogItem.proto" GrpcServices="Client" />
+	</ItemGroup>
+
 </Project>
