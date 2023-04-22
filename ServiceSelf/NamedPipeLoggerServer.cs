@@ -1,16 +1,16 @@
-﻿using System;
+﻿using Google.Protobuf;
+using System;
 using System.IO.Pipes;
-using System.Text.Json;
 
 namespace ServiceSelf
 {
     /// <summary>
-    /// 服务进程LoggingEventSource的诊断客户端
+    /// 命名管道日志服务端
     /// </summary>
     static class NamedPipeLoggerServer
     {
         /// <summary>
-        /// 监听指定进程LoggingEventSource的日志
+        /// 监听指定进程命名管道日志
         /// </summary>
         /// <param name="processId"></param>
         /// <param name="filter"></param>
@@ -20,15 +20,15 @@ namespace ServiceSelf
         {
             var pipeName = $"{nameof(ServiceSelf)}_{processId}";
             using var serverStream = new NamedPipeServerStream(pipeName);
-            serverStream.WaitForConnection();
 
-            var buffer = new byte[1024 * 1024];
+            serverStream.WaitForConnection();
+            var inputStream = new CodedInputStream(serverStream, leaveOpen: true);
+
             while (serverStream.IsConnected)
             {
-                var length = serverStream.Read(buffer, 0, buffer.Length);
-                var span = buffer.AsSpan(0, length);
-                var logItem = JsonSerializer.Deserialize<LogItem>(span);
-                if (logItem != null && logItem.IsMatch(filter))
+                var logItem = new LogItem();
+                inputStream.ReadMessage(logItem);
+                if (logItem.IsMatch(filter))
                 {
                     callback.Invoke(logItem);
                 }

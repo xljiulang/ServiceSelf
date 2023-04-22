@@ -1,9 +1,11 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
-using System.Text.Json;
 
 namespace ServiceSelf
 {
+    /// <summary>
+    /// 命名管道日志
+    /// </summary>
     sealed class NamedPipeLogger : ILogger
     {
         private readonly string categoryName;
@@ -29,10 +31,14 @@ namespace ServiceSelf
         {
             if (this.IsEnabled(logLevel))
             {
-                var message = formatter(state, exception);
-                var logItem = new LogItem(logLevel, this.categoryName, message);
-                var json = JsonSerializer.SerializeToUtf8Bytes(logItem);
-                this.pipeClient.Write(json);
+                var logItem = new LogItem
+                {                     
+                    LoggerName = this.categoryName,
+                    Level = (int)logLevel,
+                    Message = formatter(state, exception)
+                };
+                
+                this.pipeClient.Write(logItem);
             }
         }
 
@@ -43,6 +49,6 @@ namespace ServiceSelf
             public void Dispose()
             {
             }
-        }
+        } 
     }
 }

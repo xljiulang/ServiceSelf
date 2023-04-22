@@ -22,5 +22,16 @@
 		<PackageReference Include="PInvoke.AdvApi32" Version="0.7.124" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="3.1.0" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="3.1.0" />
+
+		<PackageReference Include="Google.Protobuf" Version="3.22.3" />
+		<PackageReference Include="Grpc.Tools" Version="2.54.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+		</PackageReference>
 	</ItemGroup>
+
+	<ItemGroup>
+		<Protobuf Include="LogItem.proto" GrpcServices="Client" />
+	</ItemGroup>
+
 </Project>

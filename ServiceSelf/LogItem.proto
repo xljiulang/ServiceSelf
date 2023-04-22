@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option csharp_namespace = "ServiceSelf";
+
+package ServiceSelf;   
+
+// 日志记录
+message LogItem{	
+	// 日志名称
+	string loggerName = 1;
+	// 日志级别
+	int32 level = 2;
+	// 消息内容
+	string message = 3; 
+} 
