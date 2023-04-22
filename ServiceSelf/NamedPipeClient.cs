@@ -77,7 +77,7 @@ namespace ServiceSelf
             using var serializer = new Serializer(message);
             var data = serializer.Serialize();
             return this.instance.Write(data);
-        } 
+        }
 
         /// <summary>
         /// NamedPipeClient实例
@@ -132,6 +132,7 @@ namespace ServiceSelf
                 }
                 catch (Exception)
                 {
+                    this.CanWrite = false;
                     this.ExceptionTaskSource.TrySetResult(null);
                     return false;
                 }
