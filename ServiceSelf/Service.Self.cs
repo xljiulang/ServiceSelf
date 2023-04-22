@@ -5,11 +5,20 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 
 namespace ServiceSelf
 {
     partial class Service
     {
+        [DllImport("kernel32")]
+        [SupportedOSPlatform("windows")]
+        private static extern bool AllocConsole();
+
+        [DllImport("libc")]
+        [SupportedOSPlatform("linux")]
+        private static extern int openpty(out int master, out int slave, IntPtr name, IntPtr termios, IntPtr winsize);
+
         /// <summary>
         /// 为程序应用ServiceSelf
         /// 返回true表示可以正常进入程序逻辑
@@ -108,9 +117,43 @@ namespace ServiceSelf
             }
             else if (command == Command.Logs)
             {
+                var writer = GetConsoleWriter();
                 var filter = Argument.GetValueOrDefault(arguments, "filter");
-                service.ListenLogs(filter, log => log.WriteTo(Console.Out));
+                service.ListenLogs(filter, log => log.WriteTo(writer));
             }
+        }
+
+        /// <summary>
+        /// 获取控制台输出
+        /// </summary>
+        /// <returns></returns>
+        private static TextWriter GetConsoleWriter()
+        {
+            using (var stream = Console.OpenStandardOutput())
+            {
+                if (stream != Stream.Null)
+                {
+                    return Console.Out;
+                }
+            }
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                AllocConsole();
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                openpty(out var _, out var _, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+            }
+
+            var outputStream = Console.OpenStandardOutput();
+            var streamWriter = new StreamWriter(outputStream, Console.OutputEncoding, 256, leaveOpen: true)
+            {
+                AutoFlush = true
+            };
+
+            // Synchronized确保线程安全
+            return TextWriter.Synchronized(streamWriter);
         }
     }
 }
