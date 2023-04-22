@@ -31,7 +31,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Protobuf Include="LogItem.proto" GrpcServices="Client" />
+		<Protobuf Include="LogItem.proto" GrpcServices="None" />
 	</ItemGroup>
 
 </Project>
