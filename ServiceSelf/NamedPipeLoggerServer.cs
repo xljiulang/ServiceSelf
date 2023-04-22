@@ -18,12 +18,7 @@ namespace ServiceSelf
         /// <param name="callback"></param> 
         public static void ListenLogs(int processId, string? filter, Action<LogItem> callback)
         {
-            var inputStream = CreateInputStream(processId);
-            if (inputStream == null)
-            {
-                return;
-            }
-
+            using var inputStream = CreateInputStream(processId);
             while (inputStream.IsAtEnd == false)
             {
                 var logItem = ReadLogItem(inputStream);
@@ -40,20 +35,13 @@ namespace ServiceSelf
         }
 
 
-        private static CodedInputStream? CreateInputStream(int processId)
+        private static CodedInputStream CreateInputStream(int processId)
         {
-            try
-            {
-                var pipeName = $"{nameof(ServiceSelf)}_{processId}";
-                var pipeStream = new NamedPipeServerStream(pipeName);
+            var pipeName = $"{nameof(ServiceSelf)}_{processId}";
+            var pipeStream = new NamedPipeServerStream(pipeName);
 
-                pipeStream.WaitForConnection();
-                return new CodedInputStream(pipeStream, leaveOpen: false);
-            }
-            catch (Exception)
-            {
-                return null;
-            }
+            pipeStream.WaitForConnection();
+            return new CodedInputStream(pipeStream, leaveOpen: false);
         }
 
 
