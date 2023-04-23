@@ -2,6 +2,7 @@
 using System;
 using System.Buffers;
 using System.IO.Pipes;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ServiceSelf
@@ -9,7 +10,7 @@ namespace ServiceSelf
     /// <summary>
     /// 命名管道客户端
     /// </summary>
-    sealed class NamedPipeClient
+    sealed class NamedPipeClient : IDisposable
     {
         /// <summary>
         /// 当前实例
@@ -17,27 +18,14 @@ namespace ServiceSelf
         private Instance instance;
 
         /// <summary>
+        /// 关闭tokenSource
+        /// </summary>
+        private readonly CancellationTokenSource disposeTokenSource = new();
+
+        /// <summary>
         /// 当前是否支持写入
         /// </summary>
         public bool CanWrite => this.instance.CanWrite;
-
-        /// <summary>
-        /// 获取当前进程对应的实例
-        /// </summary>
-        public static NamedPipeClient Current { get; }
-
-        /// <summary>
-        /// 静态构造器
-        /// </summary>
-        static NamedPipeClient()
-        {
-#if NET6_0_OR_GREATER
-            var processId = Environment.ProcessId;
-#else
-            var processId = System.Diagnostics.Process.GetCurrentProcess().Id;
-#endif         
-            Current = new NamedPipeClient($"{nameof(ServiceSelf)}_{processId}");
-        }
 
         /// <summary>
         /// 命名管道客户端
@@ -46,25 +34,44 @@ namespace ServiceSelf
         public NamedPipeClient(string pipeName)
         {
             this.instance = new Instance(pipeName);
-            this.RunFlushInstance(pipeName);
+            this.RunRefreshInstanceAsync(pipeName);
         }
 
-
         /// <summary>
-        /// 循环刷新实例
+        /// 自动刷新实例
         /// </summary>
         /// <param name="pipeName"></param>
-        private async void RunFlushInstance(string pipeName)
+        private async void RunRefreshInstanceAsync(string pipeName)
         {
-            while (true)
+            try
             {
-                using (this.instance)
+                while (true)
                 {
-                    await this.instance.ConnectAsync();
-                    await this.instance.ExceptionTask;
+                    await this.RefreshInstanceAsync(pipeName);
                 }
-                this.instance = new Instance(pipeName);
             }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        /// <summary>
+        /// 刷新实例
+        /// </summary>
+        /// <param name="pipeName"></param>
+        /// <returns></returns>
+        private async Task RefreshInstanceAsync(string pipeName)
+        {
+            using (this.instance)
+            {
+                var cancellationToken = this.disposeTokenSource.Token;
+                await this.instance.ConnectAsync(cancellationToken);
+                await this.instance.WaitForClosedAsync(cancellationToken);
+            }
+            this.instance = new Instance(pipeName);
         }
 
         /// <summary>
@@ -80,22 +87,26 @@ namespace ServiceSelf
         }
 
         /// <summary>
+        /// 释放资源
+        /// </summary>
+        public void Dispose()
+        {
+            this.disposeTokenSource.Cancel();
+            this.disposeTokenSource.Dispose();
+        }
+
+        /// <summary>
         /// NamedPipeClient实例
         /// </summary>
         private class Instance : IDisposable
         {
             private readonly NamedPipeClientStream clientStream;
-            private readonly TaskCompletionSource<object?> ExceptionTaskSource = new();
+            private readonly TaskCompletionSource<object?> closeTaskSource = new();
 
             /// <summary>
             /// 当前是否能写入
             /// </summary>
             public bool CanWrite { get; private set; }
-
-            /// <summary>
-            /// 异常等待的任务
-            /// </summary>
-            public Task ExceptionTask => this.ExceptionTaskSource.Task;
 
 
             public Instance(string pipeName)
@@ -106,11 +117,29 @@ namespace ServiceSelf
             /// <summary>
             /// 连接管道
             /// </summary>
+            /// <param name="cancellationToken"></param>
             /// <returns></returns>
-            public async Task ConnectAsync()
+            public async Task ConnectAsync(CancellationToken cancellationToken = default)
             {
-                await this.clientStream.ConnectAsync();
+                await this.clientStream.ConnectAsync(cancellationToken);
                 this.CanWrite = true;
+            }
+
+            /// <summary>
+            /// 等待关闭
+            /// </summary>
+            /// <param name="cancellationToken"></param>
+            /// <returns></returns>
+            public Task WaitForClosedAsync(CancellationToken cancellationToken = default)
+            {
+                cancellationToken.Register(OperationCanceled);
+                return this.closeTaskSource.Task;
+
+                void OperationCanceled()
+                {
+                    var exception = new OperationCanceledException(cancellationToken);
+                    this.closeTaskSource.TrySetException(exception);
+                }
             }
 
             /// <summary>
@@ -133,13 +162,14 @@ namespace ServiceSelf
                 catch (Exception)
                 {
                     this.CanWrite = false;
-                    this.ExceptionTaskSource.TrySetResult(null);
+                    this.closeTaskSource.TrySetResult(null);
                     return false;
                 }
             }
 
             public void Dispose()
             {
+                this.CanWrite = false;
                 this.clientStream.Dispose();
             }
         }
