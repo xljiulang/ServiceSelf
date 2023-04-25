@@ -28,7 +28,8 @@ namespace ServiceSelf
 
             filePath = Path.GetFullPath(filePath);
 
-            var unitFilePath = $"/etc/systemd/system/{this.Name}.service";
+            var unitName = $"{this.Name}.service";
+            var unitFilePath = $"/etc/systemd/system/{unitName}";
             var oldFilePath = QueryServiceFilePath(unitFilePath);
 
             if (oldFilePath.Length > 0 && oldFilePath.Equals(filePath, StringComparison.OrdinalIgnoreCase) == false)
@@ -44,11 +45,11 @@ namespace ServiceSelf
             }
 
             // SELinux
-            Shell("chcon", $"--type=bin_t {filePath}", false);
+            Shell("chcon", $"--type=bin_t {filePath}", showError: false);
 
-            SystemCtl("daemon-reload");
-            SystemCtl($"start {this.Name}.service");
-            SystemCtl($"enable {this.Name}.service", false);
+            SystemControl("daemon-reload", showError: true);
+            SystemControl($"start {unitName}", showError: true);
+            SystemControl($"enable {unitName}", showError: false);
         }
 
         private static ReadOnlySpan<char> QueryServiceFilePath(string unitFilePath)
@@ -138,15 +139,16 @@ namespace ServiceSelf
         {
             CheckRoot();
 
-            var unitFilePath = $"/etc/systemd/system/{this.Name}.service";
+            var unitName = $"{this.Name}.service";
+            var unitFilePath = $"/etc/systemd/system/{unitName}";
             if (File.Exists(unitFilePath) == false)
             {
                 return;
             }
 
-            SystemCtl($"stop {this.Name}.service");
-            SystemCtl($"disable {this.Name}.service", false);
-            SystemCtl("daemon-reload");
+            SystemControl($"stop {unitName}", showError: true);
+            SystemControl($"disable {unitName}", showError: false);
+            SystemControl("daemon-reload", showError: true);
 
             File.Delete(unitFilePath);
         }
@@ -162,7 +164,7 @@ namespace ServiceSelf
             CheckRoot();
 
             processId = 0;
-            var output = SystemCtl($"show -p MainPID {this.Name}.service", false);
+            var output = SystemControl($"show -p MainPID {this.Name}.service", false);
             if (output == null)
             {
                 return false;
@@ -175,12 +177,12 @@ namespace ServiceSelf
                 kill(processId, 0) == 0;
         }
 
-        private static string? SystemCtl(string arguments, bool showError = true)
+        private static string? SystemControl(string arguments, bool showError)
         {
             return Shell("systemctl", arguments, showError);
         }
 
-        private static string? Shell(string fileName, string arguments, bool showError = true)
+        private static string? Shell(string fileName, string arguments, bool showError)
         {
             var startInfo = new ProcessStartInfo
             {
