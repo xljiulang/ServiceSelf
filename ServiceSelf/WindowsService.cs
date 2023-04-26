@@ -29,8 +29,8 @@ namespace ServiceSelf
         public static bool UseWorkingDirectory(string[] args)
         {
             if (Argument.TryGetValue(args, WorkingDirArgName, out var workingDir))
-            { 
-                Environment.CurrentDirectory = workingDir; 
+            {
+                Environment.CurrentDirectory = workingDir;
                 return true;
             }
             return false;
@@ -172,12 +172,15 @@ namespace ServiceSelf
                 throw new Win32Exception();
             }
 
-            if (status.dwCurrentState != ServiceState.SERVICE_RUNNING)
+            if (status.dwCurrentState == ServiceState.SERVICE_RUNNING ||
+                status.dwCurrentState == ServiceState.SERVICE_START_PENDING)
             {
-                if (AdvApi32.StartService(serviceHandle, 0, null) == false)
-                {
-                    throw new Win32Exception();
-                }
+                return;
+            }
+
+            if (AdvApi32.StartService(serviceHandle, 0, null) == false)
+            {
+                throw new Win32Exception();
             }
         }
 
