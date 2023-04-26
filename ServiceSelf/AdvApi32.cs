@@ -12,7 +12,7 @@ namespace ServiceSelf
         private const uint STANDARD_RIGHTS_REQUIRED = 0xF0000;
 
         [Flags]
-        public enum ServiceManagerAccess
+        public enum ServiceManagerAccess : uint
         {
             SC_MANAGER_CONNECT = 0x0001,
             SC_MANAGER_CREATE_SERVICE = 0x0002,
@@ -38,12 +38,12 @@ namespace ServiceSelf
             SERVICE_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED | SERVICE_QUERY_CONFIG | SERVICE_CHANGE_CONFIG | SERVICE_QUERY_STATUS | SERVICE_ENUMERATE_DEPENDENTS | SERVICE_START | SERVICE_STOP | SERVICE_PAUSE_CONTINUE | SERVICE_INTERROGATE | SERVICE_USER_DEFINED_CONTROL),
         }
 
-        public enum SC_STATUS_TYPE
+        public enum SC_STATUS_TYPE : uint
         {
             SC_STATUS_PROCESS_INFO = 0,
         }
 
-        public enum ServiceState
+        public enum ServiceState : uint
         {
             SERVICE_STOPPED = 0x00000001,
             SERVICE_START_PENDING = 0x00000002,
@@ -88,7 +88,7 @@ namespace ServiceSelf
             SERVICE_NO_CHANGE = 0xFFFFFFFF,
         }
 
-        public enum ServiceInfoLevel
+        public enum ServiceInfoLevel : uint
         {
             SERVICE_CONFIG_DESCRIPTION = 1,
             SERVICE_CONFIG_FAILURE_ACTIONS = 2,
@@ -102,7 +102,7 @@ namespace ServiceSelf
             SERVICE_CONFIG_LAUNCH_PROTECTED = 12,
         }
 
-        public enum ServiceControl
+        public enum ServiceControl : uint
         {
             SERVICE_CONTROL_STOP = 0x00000001,
             SERVICE_CONTROL_PAUSE = 0x00000002,
@@ -120,7 +120,7 @@ namespace ServiceSelf
             SERVICE_CONTROL_USERMODEREBOOT = 0x00000040,
         }
 
-        public enum SC_ACTION_TYPE
+        public enum SC_ACTION_TYPE : uint
         {
             SC_ACTION_NONE,
             SC_ACTION_RESTART,
@@ -159,6 +159,7 @@ namespace ServiceSelf
         }
 
 
+        [StructLayout(LayoutKind.Sequential)]
         public struct SERVICE_STATUS
         {
             public ServiceType dwServiceType;
