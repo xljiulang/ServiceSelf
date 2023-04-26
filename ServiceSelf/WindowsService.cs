@@ -12,8 +12,8 @@ namespace ServiceSelf
 {
     sealed class WindowsService : Service
     {
-        private const string workingDirArgName = "WD";
-         
+        private const string WorkingDirArgName = "WD";
+
 
         [SupportedOSPlatform("windows")]
         public WindowsService(string name)
@@ -28,11 +28,9 @@ namespace ServiceSelf
         /// <returns></returns>
         public static bool UseWorkingDirectory(string[] args)
         {
-            var prefix = $"{workingDirArgName}=";
-            var workingDirArgument = args.FirstOrDefault(item => item.StartsWith(prefix));
-            if (string.IsNullOrEmpty(workingDirArgument) == false)
-            {
-                Environment.CurrentDirectory = workingDirArgument[prefix.Length..];
+            if (Argument.TryGetValue(args, WorkingDirArgName, out var workingDir))
+            { 
+                Environment.CurrentDirectory = workingDir; 
                 return true;
             }
             return false;
@@ -70,8 +68,8 @@ namespace ServiceSelf
         {
             var arguments = options.Arguments ?? Enumerable.Empty<Argument>();
             arguments = string.IsNullOrEmpty(options.WorkingDirectory)
-                ? arguments.Append(new Argument(workingDirArgName, Path.GetDirectoryName(filePath)))
-                : arguments.Append(new Argument(workingDirArgName, Path.GetFullPath(options.WorkingDirectory)));
+                ? arguments.Append(new Argument(WorkingDirArgName, Path.GetDirectoryName(filePath)))
+                : arguments.Append(new Argument(WorkingDirArgName, Path.GetFullPath(options.WorkingDirectory)));
 
             var serviceHandle = AdvApi32.CreateService(
                 managerHandle,
