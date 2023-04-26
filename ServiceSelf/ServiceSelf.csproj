@@ -19,7 +19,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="PInvoke.AdvApi32" Version="0.7.124" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="3.1.0" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="3.1.0" />
 

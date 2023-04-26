@@ -1,50 +1,19 @@
-﻿using PInvoke;
-using System;
+﻿using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Threading;
-using static PInvoke.AdvApi32;
+using static ServiceSelf.AdvApi32;
 
 namespace ServiceSelf
 {
     sealed class WindowsService : Service
     {
         private const string workingDirArgName = "WD";
-
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        private struct QUERY_SERVICE_CONFIG
-        {
-            public int dwServiceType;
-            public int dwStartType;
-            public int dwErrorControl;
-            public string lpBinaryPathName;
-            public string lpLoadOrderGroup;
-            public int dwTagId;
-            public string lpDependencies;
-            public string lpServiceStartName;
-            public string lpDisplayName;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct SERVICE_STATUS_PROCESS
-        {
-            public ServiceType dwServiceType;
-            public ServiceState dwCurrentState;
-            public uint dwControlsAccepted;
-            public uint dwWin32ExitCode;
-            public uint dwServiceSpecificExitCode;
-            public uint dwCheckPoint;
-            public uint dwWaitHint;
-            public uint dwProcessId;
-            public uint dwServiceFlags;
-        }
-
-        [DllImport(nameof(AdvApi32), CharSet = CharSet.Auto, SetLastError = true)]
-        private static extern bool QueryServiceConfig(SafeServiceHandle serviceHandle, IntPtr buffer, int bufferSize, out int bytesNeeded);
-
+         
 
         [SupportedOSPlatform("windows")]
         public WindowsService(string name)
@@ -129,7 +98,7 @@ namespace ServiceSelf
                 var desc = new ServiceDescription { lpDescription = options.Description };
                 var pDesc = Marshal.AllocHGlobal(Marshal.SizeOf(desc));
                 Marshal.StructureToPtr(desc, pDesc, false);
-                ChangeServiceConfig2(serviceHandle, ServiceInfoLevel.SERVICE_CONFIG_DESCRIPTION, pDesc);
+                ChangeServiceConfig2(serviceHandle, ServiceInfoLevel.SERVICE_CONFIG_DESCRIPTION, pDesc.ToPointer());
                 Marshal.FreeHGlobal(pDesc);
             }
 
