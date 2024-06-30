@@ -1,23 +1,51 @@
-﻿namespace ServiceSelf
+﻿using System;
+using System.Diagnostics.CodeAnalysis;
+
+namespace ServiceSelf
 {
-    /// <summary>
-    /// 服务命令
-    /// </summary>
-    enum Command
+    class Command : IEquatable<Command>
     {
-        /// <summary>
-        /// 停止并删除
-        /// </summary>
-        Stop = 0,
+        private readonly string value;
 
-        /// <summary>
-        /// 安装并启动
-        /// </summary>
-        Start = 1,
+        public static Command Stop { get; } = new("Stop");
+        public static Command Start { get; } = new("Start");
+        public static Command Logs { get; } = new("Logs");
 
-        /// <summary>
-        /// 查看日志
-        /// </summary>
-        Logs = 2
+        private Command(string value)
+        {
+            this.value = value;
+        }
+
+        public static bool TryParse(string? value, [MaybeNullWhen(false)] out Command command)
+        {
+            if (value == null)
+            {
+                command = null;
+                return false;
+            }
+
+            command = new(value);
+            return command.Equals(Stop) || command.Equals(Start) || command.Equals(Logs);
+        }
+
+        public override string ToString()
+        {
+            return this.value;
+        }
+
+        public bool Equals(Command? other)
+        {
+            return other != null && string.Equals(other.value, this.value, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public override bool Equals(object? obj)
+        {
+            return obj is Command cmd && this.Equals(cmd);
+        }
+
+        public override int GetHashCode()
+        {
+            return string.GetHashCode(this.value, StringComparison.OrdinalIgnoreCase);
+        } 
     }
 }

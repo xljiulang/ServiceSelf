@@ -6,13 +6,19 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Threading;
-using static ServiceSelf.AdvApi32;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.System.Services;
+using static Windows.Win32.PInvoke;
 
 namespace ServiceSelf
 {
     sealed class WindowsService : Service
     {
         private const string WorkingDirArgName = "WD";
+        private const int SC_MANAGER_ALL_ACCESS = 0xF003F;
+        private const int SERVICE_ALL_ACCESS = 0xF01FF;
+        private const int SERVICE_CONTROL_STOP = 0x00000001;
 
 
         [SupportedOSPlatform("windows")]
@@ -39,14 +45,14 @@ namespace ServiceSelf
         [SupportedOSPlatform("windows")]
         public override void CreateStart(string filePath, ServiceOptions options)
         {
-            using var managerHandle = OpenSCManager(null, null, ServiceManagerAccess.SC_MANAGER_ALL_ACCESS);
+            using var managerHandle = OpenSCManager(null, default(string), SC_MANAGER_ALL_ACCESS);
             if (managerHandle.IsInvalid == true)
             {
                 throw new Win32Exception();
             }
 
             filePath = Path.GetFullPath(filePath);
-            using var oldServiceHandle = OpenService(managerHandle, this.Name, ServiceAccess.SERVICE_ALL_ACCESS);
+            using var oldServiceHandle = OpenService(managerHandle, this.Name, SERVICE_ALL_ACCESS);
 
             if (oldServiceHandle.IsInvalid)
             {
@@ -64,24 +70,25 @@ namespace ServiceSelf
             }
         }
 
-        private unsafe SafeServiceHandle CreateService(SafeServiceHandle managerHandle, string filePath, ServiceOptions options)
+        [SupportedOSPlatform("windows")]
+        private unsafe SafeHandle CreateService(SafeHandle managerHandle, string filePath, ServiceOptions options)
         {
             var arguments = options.Arguments ?? Enumerable.Empty<Argument>();
             arguments = string.IsNullOrEmpty(options.WorkingDirectory)
                 ? arguments.Append(new Argument(WorkingDirArgName, Path.GetDirectoryName(filePath)))
                 : arguments.Append(new Argument(WorkingDirArgName, Path.GetFullPath(options.WorkingDirectory)));
 
-            var serviceHandle = AdvApi32.CreateService(
+            var serviceHandle = PInvoke.CreateService(
                 managerHandle,
                 this.Name,
                 options.Windows.DisplayName,
-                ServiceAccess.SERVICE_ALL_ACCESS,
-                ServiceType.SERVICE_WIN32_OWN_PROCESS,
-                ServiceStartType.SERVICE_AUTO_START,
-                ServiceErrorControl.SERVICE_ERROR_NORMAL,
+                SERVICE_ALL_ACCESS,
+                ENUM_SERVICE_TYPE.SERVICE_WIN32_OWN_PROCESS,
+                SERVICE_START_TYPE.SERVICE_AUTO_START,
+                SERVICE_ERROR.SERVICE_ERROR_NORMAL,
                 $@"""{filePath}"" {string.Join(' ', arguments)}",
                 lpLoadOrderGroup: null,
-                lpdwTagId: 0,
+                lpdwTagId: null,
                 lpDependencies: options.Windows.Dependencies,
                 lpServiceStartName: options.Windows.ServiceStartName,
                 lpPassword: options.Windows.Password);
@@ -93,11 +100,11 @@ namespace ServiceSelf
 
             if (string.IsNullOrEmpty(options.Description) == false)
             {
-                var desc = new ServiceDescription { lpDescription = options.Description };
-                var pDesc = Marshal.AllocHGlobal(Marshal.SizeOf(desc));
-                Marshal.StructureToPtr(desc, pDesc, false);
-                ChangeServiceConfig2(serviceHandle, ServiceInfoLevel.SERVICE_CONFIG_DESCRIPTION, pDesc.ToPointer());
-                Marshal.FreeHGlobal(pDesc);
+                fixed (char* description = options.Description)
+                {
+                    var desc = new SERVICE_DESCRIPTIONW { lpDescription = new PWSTR(description) };
+                    ChangeServiceConfig2W(serviceHandle, SERVICE_CONFIG.SERVICE_CONFIG_DESCRIPTION, &desc);
+                }
             }
 
 
@@ -105,14 +112,14 @@ namespace ServiceSelf
             {
                 Type = (SC_ACTION_TYPE)options.Windows.FailureActionType,
             };
-            var failureAction = new SERVICE_FAILURE_ACTIONS
+            var failureAction = new SERVICE_FAILURE_ACTIONSW
             {
                 cActions = 1,
                 lpsaActions = &action,
-                dwResetPeriod = (int)TimeSpan.FromDays(1d).TotalSeconds
+                dwResetPeriod = (uint)TimeSpan.FromDays(1d).TotalSeconds
             };
 
-            if (ChangeServiceConfig2(serviceHandle, ServiceInfoLevel.SERVICE_CONFIG_FAILURE_ACTIONS, &failureAction) == false)
+            if (ChangeServiceConfig2W(serviceHandle, SERVICE_CONFIG.SERVICE_CONFIG_FAILURE_ACTIONS, &failureAction) == false)
             {
                 throw new Win32Exception();
             }
@@ -120,10 +127,11 @@ namespace ServiceSelf
             return serviceHandle;
         }
 
-        private static ReadOnlySpan<char> QueryServiceFilePath(SafeServiceHandle serviceHandle)
+        [SupportedOSPlatform("windows")]
+        private static unsafe ReadOnlySpan<char> QueryServiceFilePath(SafeHandle serviceHandle)
         {
             const int ERROR_INSUFFICIENT_BUFFER = 122;
-            if (QueryServiceConfig(serviceHandle, IntPtr.Zero, 0, out var bytesNeeded) == false)
+            if (QueryServiceConfig(serviceHandle, null, 0, out var bytesNeeded) == false)
             {
                 if (Marshal.GetLastWin32Error() != ERROR_INSUFFICIENT_BUFFER)
                 {
@@ -131,54 +139,48 @@ namespace ServiceSelf
                 }
             }
 
-            var buffer = Marshal.AllocHGlobal(bytesNeeded);
-            try
-            {
-                if (QueryServiceConfig(serviceHandle, buffer, bytesNeeded, out _) == false)
-                {
-                    throw new Win32Exception();
-                }
-
-                var serviceConfig = Marshal.PtrToStructure<QUERY_SERVICE_CONFIG>(buffer);
-                var binaryPathName = serviceConfig.lpBinaryPathName.AsSpan();
-                if (binaryPathName.IsEmpty)
-                {
-                    return ReadOnlySpan<char>.Empty;
-                }
-
-                if (binaryPathName[0] == '"')
-                {
-                    binaryPathName = binaryPathName[1..];
-                    var index = binaryPathName.IndexOf('"');
-                    return index < 0 ? binaryPathName : binaryPathName[..index];
-                }
-                else
-                {
-                    var index = binaryPathName.IndexOf(' ');
-                    return index < 0 ? binaryPathName : binaryPathName[..index];
-                }
-            }
-            finally
-            {
-                Marshal.FreeHGlobal(buffer);
-            }
-        }
-
-        private static void StartService(SafeServiceHandle serviceHandle)
-        {
-            var status = new SERVICE_STATUS();
-            if (QueryServiceStatus(serviceHandle, ref status) == false)
+            var buffer = stackalloc byte[(int)bytesNeeded];
+            if (QueryServiceConfig(serviceHandle, (QUERY_SERVICE_CONFIGW*)buffer, bytesNeeded, out _) == false)
             {
                 throw new Win32Exception();
             }
 
-            if (status.dwCurrentState == ServiceState.SERVICE_RUNNING ||
-                status.dwCurrentState == ServiceState.SERVICE_START_PENDING)
+            var serviceConfig = *(QUERY_SERVICE_CONFIGW*)buffer;
+            var binaryPathName = serviceConfig.lpBinaryPathName.AsSpan();
+            if (binaryPathName.IsEmpty)
+            {
+                return ReadOnlySpan<char>.Empty;
+            }
+
+            if (binaryPathName[0] == '"')
+            {
+                binaryPathName = binaryPathName[1..];
+                var index = binaryPathName.IndexOf('"');
+                return index < 0 ? binaryPathName : binaryPathName[..index];
+            }
+            else
+            {
+                var index = binaryPathName.IndexOf(' ');
+                return index < 0 ? binaryPathName : binaryPathName[..index];
+            }
+
+        }
+
+        [SupportedOSPlatform("windows")]
+        private unsafe static void StartService(SafeHandle serviceHandle)
+        {
+            if (QueryServiceStatus(serviceHandle, out var status) == false)
+            {
+                throw new Win32Exception();
+            }
+
+            if (status.dwCurrentState == SERVICE_STATUS_CURRENT_STATE.SERVICE_RUNNING ||
+                status.dwCurrentState == SERVICE_STATUS_CURRENT_STATE.SERVICE_START_PENDING)
             {
                 return;
             }
 
-            if (AdvApi32.StartService(serviceHandle, 0, null) == false)
+            if (PInvoke.StartService(serviceHandle, ReadOnlySpan<PCWSTR>.Empty) == false)
             {
                 throw new Win32Exception();
             }
@@ -190,13 +192,13 @@ namespace ServiceSelf
         [SupportedOSPlatform("windows")]
         public override void StopDelete()
         {
-            using var managerHandle = OpenSCManager(null, null, ServiceManagerAccess.SC_MANAGER_ALL_ACCESS);
+            using var managerHandle = OpenSCManager(null, default(string), SC_MANAGER_ALL_ACCESS);
             if (managerHandle.IsInvalid == true)
             {
                 throw new Win32Exception();
             }
 
-            using var serviceHandle = OpenService(managerHandle, this.Name, ServiceAccess.SERVICE_ALL_ACCESS);
+            using var serviceHandle = OpenService(managerHandle, this.Name, SERVICE_ALL_ACCESS);
             if (serviceHandle.IsInvalid == true)
             {
                 return;
@@ -209,28 +211,28 @@ namespace ServiceSelf
             }
         }
 
-        private static unsafe void StopService(SafeServiceHandle serviceHandle, TimeSpan maxWaitTime)
+        [SupportedOSPlatform("windows")]
+        private static unsafe void StopService(SafeHandle serviceHandle, TimeSpan maxWaitTime)
         {
-            var status = new SERVICE_STATUS();
-            if (QueryServiceStatus(serviceHandle, ref status) == false)
+            if (QueryServiceStatus(serviceHandle, out var status) == false)
             {
                 throw new Win32Exception();
             }
 
-            if (status.dwCurrentState == ServiceState.SERVICE_STOPPED)
+            if (status.dwCurrentState == SERVICE_STATUS_CURRENT_STATE.SERVICE_STOPPED)
             {
                 return;
             }
 
-            if (status.dwCurrentState != ServiceState.SERVICE_STOP_PENDING)
+            if (status.dwCurrentState != SERVICE_STATUS_CURRENT_STATE.SERVICE_STOP_PENDING)
             {
-                var failureAction = new SERVICE_FAILURE_ACTIONS();
-                if (ChangeServiceConfig2(serviceHandle, ServiceInfoLevel.SERVICE_CONFIG_FAILURE_ACTIONS, &failureAction) == false)
+                var failureAction = new SERVICE_FAILURE_ACTIONSW();
+                if (ChangeServiceConfig2W(serviceHandle, SERVICE_CONFIG.SERVICE_CONFIG_FAILURE_ACTIONS, &failureAction) == false)
                 {
                     throw new Win32Exception();
                 }
 
-                if (ControlService(serviceHandle, ServiceControl.SERVICE_CONTROL_STOP, ref status) == false)
+                if (ControlService(serviceHandle, SERVICE_CONTROL_STOP, out status) == false)
                 {
                     throw new Win32Exception();
                 }
@@ -242,13 +244,13 @@ namespace ServiceSelf
             var statusQueryDelay = TimeSpan.FromMilliseconds(100d);
             while (stopwatch.Elapsed < maxWaitTime)
             {
-                if (status.dwCurrentState == ServiceState.SERVICE_STOPPED)
+                if (status.dwCurrentState == SERVICE_STATUS_CURRENT_STATE.SERVICE_STOPPED)
                 {
                     return;
                 }
 
                 Thread.Sleep(statusQueryDelay);
-                if (QueryServiceStatus(serviceHandle, ref status) == false)
+                if (QueryServiceStatus(serviceHandle, out status) == false)
                 {
                     throw new Win32Exception();
                 }
@@ -262,23 +264,25 @@ namespace ServiceSelf
         /// </summary>
         /// <param name="processId"></param>
         /// <returns></returns>
+        [SupportedOSPlatform("windows")]
         protected unsafe override bool TryGetProcessId(out int processId)
         {
             processId = 0;
-            using var managerHandle = OpenSCManager(null, null, ServiceManagerAccess.SC_MANAGER_ALL_ACCESS);
+            using var managerHandle = OpenSCManager(null, default(string), SC_MANAGER_ALL_ACCESS);
             if (managerHandle.IsInvalid == true)
             {
                 throw new Win32Exception();
             }
 
-            using var serviceHandle = OpenService(managerHandle, this.Name, ServiceAccess.SERVICE_ALL_ACCESS);
+            using var serviceHandle = OpenService(managerHandle, this.Name, SERVICE_ALL_ACCESS);
             if (serviceHandle.IsInvalid == true)
             {
                 return false;
             }
 
             var status = new SERVICE_STATUS_PROCESS();
-            if (QueryServiceStatusEx(serviceHandle, SC_STATUS_TYPE.SC_STATUS_PROCESS_INFO, &status, sizeof(SERVICE_STATUS_PROCESS), out _) == false)
+            var buffer = new Span<byte>(&status, sizeof(SERVICE_STATUS_PROCESS));
+            if (QueryServiceStatusEx(serviceHandle, SC_STATUS_TYPE.SC_STATUS_PROCESS_INFO, buffer, out _) == false)
             {
                 return false;
             }

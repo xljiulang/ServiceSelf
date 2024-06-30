@@ -3,15 +3,15 @@
 	<PropertyGroup>
 		<AssemblyName>App</AssemblyName>
 		<OutputType>Exe</OutputType>
-		<TargetFramework>net6.0</TargetFramework>
+		<TargetFramework>net8.0</TargetFramework>
+		<PublishAot>true</PublishAot>
 		<Nullable>enable</Nullable>
-		<PublishTrimmed>true</PublishTrimmed>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'!='Debug'">
 		<ApplicationManifest>app.manifest</ApplicationManifest>
-	</PropertyGroup>
-
+	</PropertyGroup> 
+	
 	<ItemGroup>
 		<ProjectReference Include="..\ServiceSelf\ServiceSelf.csproj" />
 	</ItemGroup>

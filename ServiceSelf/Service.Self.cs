@@ -64,8 +64,7 @@ namespace ServiceSelf
             }
 
             // 具有可交互的模式时，比如桌面程序、控制台等
-            if (Enum.TryParse<Command>(args.FirstOrDefault(), true, out var command) &&
-                Enum.IsDefined(typeof(Command), command))
+            if (Command.TryParse(args.FirstOrDefault(), out var command))
             {
                 var arguments = args.Skip(1);
                 UseCommand(command, arguments, serviceName, serviceOptions);
@@ -107,15 +106,15 @@ namespace ServiceSelf
             }
 
             var service = Create(name);
-            if (command == Command.Start)
+            if (command.Equals(Command.Start))
             {
                 service.CreateStart(filePath, options ?? new ServiceOptions());
             }
-            else if (command == Command.Stop)
+            else if (command.Equals(Command.Stop))
             {
                 service.StopDelete();
             }
-            else if (command == Command.Logs)
+            else if (command.Equals(Command.Logs))
             {
                 var writer = GetConsoleWriter();
                 var filter = Argument.GetValueOrDefault(arguments, "filter");

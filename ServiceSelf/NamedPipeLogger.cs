@@ -17,7 +17,7 @@ namespace ServiceSelf
             this.pipeClient = pipeClient;
         }
 
-        public IDisposable BeginScope<TState>(TState state)
+        public IDisposable BeginScope<TState>(TState state) where TState : notnull
         {
             return NullScope.Instance;
         }
@@ -27,7 +27,7 @@ namespace ServiceSelf
             return logLevel != LogLevel.None && this.pipeClient.CanWrite;
         }
 
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
             if (this.IsEnabled(logLevel))
             {
