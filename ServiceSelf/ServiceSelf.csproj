@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<Version>1.0.7</Version>
+		<Version>1.0.8</Version>
 		<Copyright>Copyright © laojiu 2023-2024</Copyright>
 
 		<Nullable>enable</Nullable>
