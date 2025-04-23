@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<Version>1.0.7</Version>
+		<Version>1.0.8</Version>
 		<Copyright>Copyright © laojiu 2023-2024</Copyright>
 
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<TargetFrameworks>netcoreapp3.1;net6.0;net8.0</TargetFrameworks>
+		<TargetFrameworks>net6.0;net8.0;net9.0</TargetFrameworks>
 		<Description>为.NET 泛型主机的应用程序提供自安装为服务进程的能力</Description>
 		<Authors>laojiu</Authors>
 		<Company>laojiu</Company>
@@ -30,11 +30,7 @@
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp3.1'">
-		<PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="3.1.0" />
-		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="3.1.0" />
-	</ItemGroup>
-
+	
 	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
 		<PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="6.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="6.0.0" />
@@ -43,6 +39,10 @@
 	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
 		<PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="8.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.0" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+		<PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="9.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="9.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>
