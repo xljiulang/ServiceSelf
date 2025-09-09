@@ -28,19 +28,20 @@ namespace ServiceSelf
 
         /// <summary>
         /// 应用工作目录
-        /// </summary>
-        /// <param name="args">启动参数</param>
+        /// </summary> 
         /// <returns></returns>
-        public static bool UseWorkingDirectory(string[] args)
+        public static bool UseWorkingDirectory()
         {
-            if (Argument.TryGetValue(args, WorkingDirArgName, out var workingDir))
+            var directory = Path.GetDirectoryName(Environment.ProcessPath);
+            if (string.IsNullOrEmpty(directory))
             {
-                Environment.CurrentDirectory = workingDir;
-                return true;
+                return false;
             }
-            return false;
+
+            Environment.CurrentDirectory = directory;
+            return true;
         }
-         
+
         public override void CreateStart(string filePath, ServiceOptions options)
         {
             using var managerHandle = OpenSCManager(null, default(string), SC_MANAGER_ALL_ACCESS);
@@ -67,14 +68,10 @@ namespace ServiceSelf
                 StartService(oldServiceHandle);
             }
         }
-         
+
         private unsafe SafeHandle CreateService(SafeHandle managerHandle, string filePath, ServiceOptions options)
         {
             var arguments = options.Arguments ?? Enumerable.Empty<Argument>();
-            arguments = string.IsNullOrEmpty(options.WorkingDirectory)
-                ? arguments.Append(new Argument(WorkingDirArgName, Path.GetDirectoryName(filePath)))
-                : arguments.Append(new Argument(WorkingDirArgName, Path.GetFullPath(options.WorkingDirectory)));
-
             var serviceHandle = PInvoke.CreateService(
                 managerHandle,
                 this.Name,
@@ -123,7 +120,7 @@ namespace ServiceSelf
 
             return serviceHandle;
         }
-         
+
         private static unsafe ReadOnlySpan<char> QueryServiceFilePath(SafeHandle serviceHandle)
         {
             const int ERROR_INSUFFICIENT_BUFFER = 122;
@@ -161,7 +158,7 @@ namespace ServiceSelf
             }
 
         }
-         
+
         private unsafe static void StartService(SafeHandle serviceHandle)
         {
             if (QueryServiceStatus(serviceHandle, out var status) == false)
@@ -204,7 +201,7 @@ namespace ServiceSelf
                 throw new Win32Exception();
             }
         }
-         
+
         private static unsafe void StopService(SafeHandle serviceHandle, TimeSpan maxWaitTime)
         {
             if (QueryServiceStatus(serviceHandle, out var status) == false)

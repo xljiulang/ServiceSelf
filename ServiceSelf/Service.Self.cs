@@ -54,7 +54,7 @@ namespace ServiceSelf
             // windows服务模式时需要将工作目录参数设置到环境变量
             if (OperatingSystem.IsWindows() && WindowsServiceHelpers.IsWindowsService())
             {
-                return WindowsService.UseWorkingDirectory(args);
+                return WindowsService.UseWorkingDirectory();
             }
 
             // systemd服务模式时不再检查任何参数

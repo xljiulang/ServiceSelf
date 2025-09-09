@@ -112,14 +112,15 @@ namespace ServiceSelf
                 }
             }
 
-            var workingDirectory = string.IsNullOrEmpty(options.WorkingDirectory)
-                ? Path.GetDirectoryName(filePath)
-                : Path.GetFullPath(options.WorkingDirectory);
 
             var linuxOptions = options.Linux.Clone();
             linuxOptions.Unit["Description"] = options.Description;
             linuxOptions.Service["ExecStart"] = execStart;
-            linuxOptions.Service["WorkingDirectory"] = workingDirectory;
+
+            if (string.IsNullOrEmpty(linuxOptions.Service.WorkingDirectory))
+            {
+                linuxOptions.Service.WorkingDirectory = Path.GetDirectoryName(filePath);
+            }
 
             if (string.IsNullOrEmpty(linuxOptions.Service.Type))
             {

@@ -69,6 +69,15 @@
         }
 
         /// <summary>
+        /// 工作目录
+        /// </summary>
+        public string? WorkingDirectory
+        {
+            get => Get(nameof(WorkingDirectory));
+            set => Set(nameof(WorkingDirectory), value);
+        }
+
+        /// <summary>
         /// 重启选项
         /// <para>no 不自动重启服务，如果服务崩溃或退出，则不会自动重启</para>
         /// <para>on-success 只有在服务以退出状态0成功完成时才自动重启</para>
