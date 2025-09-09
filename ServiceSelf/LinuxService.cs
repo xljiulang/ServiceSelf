@@ -1,9 +1,10 @@
-﻿using System;
-using System.Diagnostics;
+﻿using Microsoft.Win32.SafeHandles;
+using System;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace ServiceSelf
@@ -17,15 +18,26 @@ namespace ServiceSelf
         [DllImport("libc")]
         private static extern int kill(int pid, int sig);
 
+        [DllImport("libc", CharSet = CharSet.Ansi)]
+        private static extern int system(string command);
+
+        [DllImport("libc")]
+        private static extern StreamSafeHandle popen(string command, string mode = "r");
+
+        [DllImport("libc")]
+        private static extern IntPtr fgets(IntPtr buffer, int size, IntPtr stream);
+
         public LinuxService(string name)
             : base(name)
         {
+            if (geteuid() != 0)
+            {
+                throw new UnauthorizedAccessException("无法操作服务：没有root权限");
+            }
         }
 
         public override void CreateStart(string filePath, ServiceOptions options)
         {
-            CheckRoot();
-
             filePath = Path.GetFullPath(filePath);
 
             var unitName = $"{this.Name}.service";
@@ -45,11 +57,10 @@ namespace ServiceSelf
             }
 
             // SELinux
-            Shell("chcon", $"--type=bin_t {filePath}", showError: false);
-
-            SystemControl("daemon-reload", showError: true);
-            SystemControl($"start {unitName}", showError: true);
-            SystemControl($"enable {unitName}", showError: false);
+            _ = system($"chcon --type=bin_t {filePath}");
+            _ = system($"systemctl daemon-reload");
+            _ = system($"systemctl start {unitName}");
+            _ = system($"systemctl enable {unitName}");
         }
 
         private static ReadOnlySpan<char> QueryServiceFilePath(string unitFilePath)
@@ -112,7 +123,6 @@ namespace ServiceSelf
                 }
             }
 
-
             var linuxOptions = options.Linux.Clone();
             linuxOptions.Unit["Description"] = options.Description;
             linuxOptions.Service["ExecStart"] = execStart;
@@ -138,8 +148,6 @@ namespace ServiceSelf
 
         public override void StopDelete()
         {
-            CheckRoot();
-
             var unitName = $"{this.Name}.service";
             var unitFilePath = $"/etc/systemd/system/{unitName}";
             if (File.Exists(unitFilePath) == false)
@@ -147,9 +155,9 @@ namespace ServiceSelf
                 return;
             }
 
-            SystemControl($"stop {unitName}", showError: true);
-            SystemControl($"disable {unitName}", showError: false);
-            SystemControl("daemon-reload", showError: true);
+            _ = system($"systemctl stop {unitName}");
+            _ = system($"systemctl disable {unitName}");
+            _ = system($"systemctl daemon-reload");
 
             File.Delete(unitFilePath);
         }
@@ -162,14 +170,26 @@ namespace ServiceSelf
         /// <returns></returns>
         protected override bool TryGetProcessId(out int processId)
         {
-            CheckRoot();
-
             processId = 0;
-            var output = SystemControl($"show -p MainPID {this.Name}.service", false);
-            if (output == null)
+            var command = $"systemctl show -p MainPID {this.Name}.service";
+            using var stream = popen(command);
+            if (stream.IsInvalid)
             {
                 return false;
             }
+
+            const int SIZE = 4096;
+            var buffer = Marshal.AllocHGlobal(SIZE);
+            var builder = new StringBuilder();
+
+            while (fgets(buffer, SIZE, stream.DangerousGetHandle()) != IntPtr.Zero)
+            {
+                var line = Marshal.PtrToStringAnsi(buffer);
+                builder.Append(line);
+            }
+
+            Marshal.FreeHGlobal(buffer);
+            var output = builder.ToString();
 
             var match = Regex.Match(output, @"\d+");
             return match.Success &&
@@ -178,37 +198,20 @@ namespace ServiceSelf
                 kill(processId, 0) == 0;
         }
 
-        private static string? SystemControl(string arguments, bool showError)
-        {
-            return Shell("systemctl", arguments, showError);
-        }
 
-        private static string? Shell(string fileName, string arguments, bool showError)
+        private class StreamSafeHandle : SafeHandleZeroOrMinusOneIsInvalid
         {
-            var startInfo = new ProcessStartInfo
+            [DllImport("libc")]
+            private static extern int pclose(IntPtr stream);
+
+            private StreamSafeHandle()
+                : base(ownsHandle: true)
             {
-                FileName = fileName,
-                Arguments = arguments,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = !showError
-            };
-            var process = Process.Start(startInfo);
-            if (process == null)
-            {
-                return null;
             }
 
-            var output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
-            return output;
-        }
-
-        private static void CheckRoot()
-        {
-            if (geteuid() != 0)
+            protected override bool ReleaseHandle()
             {
-                throw new UnauthorizedAccessException("无法操作服务：没有root权限");
+                return pclose(this.handle) == 0;
             }
         }
     }

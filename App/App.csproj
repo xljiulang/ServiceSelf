@@ -4,14 +4,14 @@
 		<AssemblyName>App</AssemblyName>
 		<OutputType>Exe</OutputType>
 		<TargetFramework>net8.0</TargetFramework>
-		<PublishAot>true</PublishAot>
+		<PublishAot>false</PublishAot>
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'!='Debug'">
 		<ApplicationManifest>app.manifest</ApplicationManifest>
-	</PropertyGroup> 
-	
+	</PropertyGroup>
+
 	<ItemGroup>
 		<ProjectReference Include="..\ServiceSelf\ServiceSelf.csproj" />
 	</ItemGroup>
