@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<Version>1.0.7</Version>
-		<Copyright>Copyright © laojiu 2023-2024</Copyright>
+		<Version>1.0.8</Version>
+		<Copyright>Copyright © laojiu 2023-2025</Copyright>
 
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<TargetFrameworks>netcoreapp3.1;net6.0;net8.0</TargetFrameworks>
+		<TargetFrameworks>net6.0;net8.0</TargetFrameworks>
 		<Description>为.NET 泛型主机的应用程序提供自安装为服务进程的能力</Description>
 		<Authors>laojiu</Authors>
 		<Company>laojiu</Company>
@@ -28,11 +28,6 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp3.1'">
-		<PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="3.1.0" />
-		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="3.1.0" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">

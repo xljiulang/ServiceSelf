@@ -66,12 +66,12 @@ namespace ServiceSelf
         /// <exception cref="PlatformNotSupportedException"></exception>
         public static Service Create(string name)
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (OperatingSystem.IsWindows())
             {
                 return new WindowsService(name);
             }
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            if (OperatingSystem.IsLinux())
             {
                 return new LinuxService(name);
             }

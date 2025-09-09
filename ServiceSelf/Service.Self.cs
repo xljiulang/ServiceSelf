@@ -52,13 +52,13 @@ namespace ServiceSelf
         public static bool UseServiceSelf(string[] args, string? serviceName, ServiceOptions? serviceOptions)
         {
             // windows服务模式时需要将工作目录参数设置到环境变量
-            if (WindowsServiceHelpers.IsWindowsService())
+            if (OperatingSystem.IsWindows() && WindowsServiceHelpers.IsWindowsService())
             {
                 return WindowsService.UseWorkingDirectory(args);
             }
 
             // systemd服务模式时不再检查任何参数
-            if (SystemdHelpers.IsSystemdService())
+            if (OperatingSystem.IsLinux() && SystemdHelpers.IsSystemdService())
             {
                 return true;
             }
@@ -88,11 +88,7 @@ namespace ServiceSelf
         /// <exception cref="PlatformNotSupportedException"></exception>
         private static void UseCommand(Command command, IEnumerable<string> arguments, string? name, ServiceOptions? options)
         {
-#if NET6_0_OR_GREATER
             var filePath = Environment.ProcessPath;
-#else
-            var filePath = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
-#endif
             if (string.IsNullOrEmpty(filePath))
             {
                 throw new FileNotFoundException("无法获取当前进程的启动文件路径");
@@ -100,7 +96,7 @@ namespace ServiceSelf
 
             if (string.IsNullOrEmpty(name))
             {
-                name = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                name = OperatingSystem.IsWindows()
                     ? Path.GetFileNameWithoutExtension(filePath)
                     : Path.GetFileName(filePath);
             }
@@ -136,13 +132,13 @@ namespace ServiceSelf
                 }
             }
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (OperatingSystem.IsWindows())
             {
                 AllocConsole();
             }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            else if (OperatingSystem.IsLinux())
             {
-                openpty(out var _, out var _, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+                _ = openpty(out var _, out var _, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
             }
 
             var outputStream = Console.OpenStandardOutput();

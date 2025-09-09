@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace ServiceSelf
 {
-    class Command : IEquatable<Command>
+    sealed class Command : IEquatable<Command>
     {
         private readonly string value;
 
@@ -46,6 +46,6 @@ namespace ServiceSelf
         public override int GetHashCode()
         {
             return string.GetHashCode(this.value, StringComparison.OrdinalIgnoreCase);
-        } 
+        }
     }
 }

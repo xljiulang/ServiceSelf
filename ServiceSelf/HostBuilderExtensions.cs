@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using ServiceSelf;
+using System;
 
 namespace Microsoft.Extensions.Hosting
 {
@@ -27,7 +28,10 @@ namespace Microsoft.Extensions.Hosting
                     builder.Services.TryAddEnumerable(descriptor);
                 });
             }
-            return hostBuilder.UseWindowsService().UseSystemd();
+
+            return OperatingSystem.IsWindows()
+                ? hostBuilder.UseWindowsService()
+                : hostBuilder.UseSystemd();
         }
     }
 }

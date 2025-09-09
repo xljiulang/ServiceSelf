@@ -13,6 +13,7 @@ using static Windows.Win32.PInvoke;
 
 namespace ServiceSelf
 {
+    [SupportedOSPlatform("windows")]
     sealed class WindowsService : Service
     {
         private const string WorkingDirArgName = "WD";
@@ -20,8 +21,6 @@ namespace ServiceSelf
         private const int SERVICE_ALL_ACCESS = 0xF01FF;
         private const int SERVICE_CONTROL_STOP = 0x00000001;
 
-
-        [SupportedOSPlatform("windows")]
         public WindowsService(string name)
            : base(name)
         {
@@ -41,8 +40,7 @@ namespace ServiceSelf
             }
             return false;
         }
-
-        [SupportedOSPlatform("windows")]
+         
         public override void CreateStart(string filePath, ServiceOptions options)
         {
             using var managerHandle = OpenSCManager(null, default(string), SC_MANAGER_ALL_ACCESS);
@@ -69,8 +67,7 @@ namespace ServiceSelf
                 StartService(oldServiceHandle);
             }
         }
-
-        [SupportedOSPlatform("windows")]
+         
         private unsafe SafeHandle CreateService(SafeHandle managerHandle, string filePath, ServiceOptions options)
         {
             var arguments = options.Arguments ?? Enumerable.Empty<Argument>();
@@ -126,8 +123,7 @@ namespace ServiceSelf
 
             return serviceHandle;
         }
-
-        [SupportedOSPlatform("windows")]
+         
         private static unsafe ReadOnlySpan<char> QueryServiceFilePath(SafeHandle serviceHandle)
         {
             const int ERROR_INSUFFICIENT_BUFFER = 122;
@@ -165,8 +161,7 @@ namespace ServiceSelf
             }
 
         }
-
-        [SupportedOSPlatform("windows")]
+         
         private unsafe static void StartService(SafeHandle serviceHandle)
         {
             if (QueryServiceStatus(serviceHandle, out var status) == false)
@@ -188,8 +183,7 @@ namespace ServiceSelf
 
         /// <summary>
         /// 停止并删除服务
-        /// </summary>  
-        [SupportedOSPlatform("windows")]
+        /// </summary>   
         public override void StopDelete()
         {
             using var managerHandle = OpenSCManager(null, default(string), SC_MANAGER_ALL_ACCESS);
@@ -210,8 +204,7 @@ namespace ServiceSelf
                 throw new Win32Exception();
             }
         }
-
-        [SupportedOSPlatform("windows")]
+         
         private static unsafe void StopService(SafeHandle serviceHandle, TimeSpan maxWaitTime)
         {
             if (QueryServiceStatus(serviceHandle, out var status) == false)
@@ -263,8 +256,7 @@ namespace ServiceSelf
         /// 尝试获取服务的进程id
         /// </summary>
         /// <param name="processId"></param>
-        /// <returns></returns>
-        [SupportedOSPlatform("windows")]
+        /// <returns></returns> 
         protected unsafe override bool TryGetProcessId(out int processId)
         {
             processId = 0;

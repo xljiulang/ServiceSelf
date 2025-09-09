@@ -7,7 +7,7 @@ namespace ServiceSelf
     /// <summary>
     /// 启动参数
     /// </summary>
-    public class Argument
+    public sealed class Argument
     {
         private readonly string argument;
 

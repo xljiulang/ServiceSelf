@@ -17,10 +17,17 @@ namespace ServiceSelf
             this.pipeClient = pipeClient;
         }
 
-        public IDisposable BeginScope<TState>(TState state) where TState : notnull
+#if NET8_0_OR_GREATER
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull
         {
             return NullScope.Instance;
         }
+#else
+        public IDisposable BeginScope<TState>(TState state)
+        {
+            return NullScope.Instance;
+        }
+#endif
 
         public bool IsEnabled(LogLevel logLevel)
         {
@@ -32,12 +39,12 @@ namespace ServiceSelf
             if (this.IsEnabled(logLevel))
             {
                 var logItem = new LogItem
-                {                     
+                {
                     LoggerName = this.categoryName,
                     Level = (int)logLevel,
                     Message = formatter(state, exception)
                 };
-                
+
                 this.pipeClient.Write(logItem);
             }
         }
@@ -49,6 +56,6 @@ namespace ServiceSelf
             public void Dispose()
             {
             }
-        } 
+        }
     }
 }
